@@ -26,7 +26,7 @@ The implementation is designed around three control principles:
 
 
 
-Phase 5 SuperDocs integration is implemented as a protocol-backed REST adapter. Phase 4 architecture reasoning remains independently testable.
+Phase 6 framework generation and surgical propagation are implemented on top of Phase 4 reasoning and the Phase 5 SuperDocs adapter. Domain generation still does not call SuperDocs.
 
 
 
@@ -218,11 +218,59 @@ The script uploads `fixtures/superdocs/smoke-role.md`, starts a reviewed edit, p
 
 
 
+## Canonical framework and surgical propagation
+
+
+
+`generate_framework(architecture, evidences)` builds a `FrameworkDocument` from architecture-domain objects, not from parsed prose.
+
+
+
+The framework contains organization purpose and principles, IC and people-manager tracks, canonical IC1–IC5 and M1–M3 (stable `level_id` + `version`, with scope, autonomy/decision authority, complexity, impact, leadership, and people-management), occupied job families, per-family competency matrices, role mappings, employee-readable profiles, provisional review artifacts, and misfits.
+
+
+
+### Profile schema
+
+
+
+Classified roles (strong-fit, and provisional roles that still have family/track/level) use one profile schema: title, family, track, level, purpose, responsibilities, scope/decision making, core competencies, level expectations, progression, evidence note, and classification. Provisional profiles stay marked provisional. Misfits and unclassified provisional roles are review artifacts, not normalized profiles.
+
+
+
+Templates live in `templates/framework.md` and `templates/role-profile.md`.
+
+
+
+### Dependency graph
+
+
+
+Edges are explicit. A canonical level definition points at a profile's `level_expectations` section. A family competency points at `core_competencies`. Impact analysis does not string-search rendered prose.
+
+
+
+### Propagation and preservation
+
+
+
+`analyze_level_change` returns affected profile ids, affected sections, unaffected ids, and old/new dependency versions. `plan_level_updates` emits section-level `UpdatePlan`s in `planned` status. Human review is `approved` or `rejected`. Only approved plans apply. Rejected plans leave profiles and dependency versions unchanged.
+
+
+
+Deterministic SHA-256 hashes cover every structured profile section. After apply, intended sections must change and every other section/profile must keep the same hash. `PreservationReport.violations` is a hard failure. Planning the same canonical change a second time yields no semantic edits.
+
+
+
+`documents.py` maps framework/profile/update-plan objects to SuperDocs template payloads and targeted edit instructions. It does not perform HTTP.
+
+
+
 ## Later SuperDocs usage
 
 
 
-The adapter now covers upload, multi-document sessions, search, templates, reviewed async edits, approval, and export. Later phases will use it to generate framework/profile documents, propagate dependencies, and present a UI. No frontend and no framework generation in Phase 5.
+The adapter covers upload, multi-document sessions, search, templates, reviewed async edits, approval, and export. Phase 6 prepared framework/profile payloads and targeted edit instructions. Frontend and live publication remain later.
 
 
 

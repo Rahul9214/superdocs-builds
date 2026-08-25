@@ -50,11 +50,11 @@ Phase 4 tests cover both synthetic corpora with the same engine. Reasoning sourc
 
 \- career tracks — implemented (IC and people-manager)
 
-\- competency matrices — not started (later phase)
+\- competency matrices — implemented (constrained per-family catalog; generic when evidence is thin)
 
-\- role profiles — not started (later phase)
+\- role profiles — implemented (structured sections; misfits are review artifacts)
 
-\- dependency graph — model only (traversal remains later)
+\- dependency graph — implemented (level → `level_expectations`, competency → `core_competencies`)
 
 
 
@@ -82,17 +82,17 @@ Phase 4 tests cover both synthetic corpora with the same engine. Reasoning sourc
 
 
 
-\- impacted profiles identified
+\- impacted profiles identified — implemented (`analyze_level_change`)
 
-\- unaffected profiles excluded
+\- unaffected profiles excluded — implemented (only explicit level dependencies)
 
-\- correct dependent section updated
+\- correct dependent section updated — implemented (`level_expectations` only for a level change)
 
-\- unrelated sections preserved
+\- unrelated sections preserved — implemented (hash comparison)
 
-\- preservation hashes stable
+\- preservation hashes stable — implemented (`PreservationReport`; unexpected changes are errors)
 
-\- repeated propagation is safe
+\- repeated propagation is safe — implemented (second plan is empty; second apply is a no-op)
 
 
 

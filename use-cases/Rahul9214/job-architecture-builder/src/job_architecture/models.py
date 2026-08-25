@@ -313,6 +313,9 @@ class LevelDefinition:
     impact: str
     leadership: str
     people_management: str = ""
+    complexity: str = ""
+    decision_authority: str = ""
+    version: int = 1
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "id", _require_str(self.id, "id"))
@@ -332,6 +335,18 @@ class LevelDefinition:
             "people_management",
             _require_str(self.people_management, "people_management", allow_empty=True),
         )
+        object.__setattr__(
+            self,
+            "complexity",
+            _require_str(self.complexity, "complexity", allow_empty=True),
+        )
+        object.__setattr__(
+            self,
+            "decision_authority",
+            _require_str(self.decision_authority, "decision_authority", allow_empty=True),
+        )
+        if not isinstance(self.version, int) or isinstance(self.version, bool) or self.version < 1:
+            raise ValueError("version must be an integer >= 1")
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -345,6 +360,9 @@ class LevelDefinition:
             "impact": self.impact,
             "leadership": self.leadership,
             "people_management": self.people_management,
+            "complexity": self.complexity,
+            "decision_authority": self.decision_authority,
+            "version": self.version,
         }
 
     @classmethod
@@ -353,6 +371,9 @@ class LevelDefinition:
         rank = payload.get("rank")
         if isinstance(rank, bool) or not isinstance(rank, int):
             raise ValueError("rank must be an integer")
+        version = payload.get("version", 1)
+        if isinstance(version, bool) or not isinstance(version, int):
+            raise ValueError("version must be an integer >= 1")
         return cls(
             id=payload.get("id"),
             family_id=payload.get("family_id"),
@@ -364,6 +385,9 @@ class LevelDefinition:
             impact=payload.get("impact"),
             leadership=payload.get("leadership"),
             people_management=payload.get("people_management") or "",
+            complexity=payload.get("complexity") or "",
+            decision_authority=payload.get("decision_authority") or "",
+            version=version,
         )
 
 
@@ -552,9 +576,29 @@ class RoleAssessment:
         )
 
 
+PROFILE_SECTION_IDS = (
+    "title",
+    "family",
+    "track",
+    "level",
+    "purpose",
+    "responsibilities",
+    "scope_decision_making",
+    "core_competencies",
+    "level_expectations",
+    "progression",
+    "evidence_note",
+    "classification",
+)
+
+
 @dataclass(frozen=True)
 class RoleProfile:
-    """Employee-readable profile derived from an assessed role."""
+    """Employee-readable profile derived from an assessed role.
+
+    Sections are structured fields. Propagation must use section ids, not
+    string-search of rendered prose.
+    """
 
     id: str
     role_id: str
@@ -565,6 +609,15 @@ class RoleProfile:
     summary: str
     responsibilities: list[str]
     competency_ids: list[str] = field(default_factory=list)
+    family_name: str = ""
+    track_name: str = ""
+    level_label: str = ""
+    classification: str = "strong_fit"
+    scope_decision_making: str = ""
+    core_competencies: str = ""
+    level_expectations: str = ""
+    progression: str = ""
+    evidence_note: str = ""
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "id", _require_str(self.id, "id"))
@@ -584,6 +637,96 @@ class RoleProfile:
             "competency_ids",
             _require_str_list(list(self.competency_ids), "competency_ids"),
         )
+        object.__setattr__(self, "family_name", _require_str(self.family_name, "family_name", allow_empty=True))
+        object.__setattr__(self, "track_name", _require_str(self.track_name, "track_name", allow_empty=True))
+        object.__setattr__(self, "level_label", _require_str(self.level_label, "level_label", allow_empty=True))
+        object.__setattr__(
+            self,
+            "classification",
+            _require_str(self.classification, "classification"),
+        )
+        object.__setattr__(
+            self,
+            "scope_decision_making",
+            _require_str(self.scope_decision_making, "scope_decision_making", allow_empty=True),
+        )
+        object.__setattr__(
+            self,
+            "core_competencies",
+            _require_str(self.core_competencies, "core_competencies", allow_empty=True),
+        )
+        object.__setattr__(
+            self,
+            "level_expectations",
+            _require_str(self.level_expectations, "level_expectations", allow_empty=True),
+        )
+        object.__setattr__(self, "progression", _require_str(self.progression, "progression", allow_empty=True))
+        object.__setattr__(
+            self,
+            "evidence_note",
+            _require_str(self.evidence_note, "evidence_note", allow_empty=True),
+        )
+        parse_fit_status(self.classification, "classification")
+
+    def section_value(self, section_id: str) -> Any:
+        if section_id not in PROFILE_SECTION_IDS:
+            raise KeyError(section_id)
+        if section_id == "title":
+            return self.display_title
+        if section_id == "family":
+            return self.family_name or self.family_id
+        if section_id == "track":
+            return self.track_name or self.track_id
+        if section_id == "level":
+            return self.level_label or self.level_id
+        if section_id == "purpose":
+            return self.summary
+        if section_id == "responsibilities":
+            return list(self.responsibilities)
+        if section_id == "scope_decision_making":
+            return self.scope_decision_making
+        if section_id == "core_competencies":
+            return self.core_competencies
+        if section_id == "level_expectations":
+            return self.level_expectations
+        if section_id == "progression":
+            return self.progression
+        if section_id == "evidence_note":
+            return self.evidence_note
+        return self.classification
+
+    def with_section(self, section_id: str, value: Any) -> RoleProfile:
+        from dataclasses import replace
+
+        if section_id == "title":
+            return replace(self, display_title=_require_str(value, "title"))
+        if section_id == "family":
+            return replace(self, family_name=_require_str(value, "family"))
+        if section_id == "track":
+            return replace(self, track_name=_require_str(value, "track"))
+        if section_id == "level":
+            return replace(self, level_label=_require_str(value, "level"))
+        if section_id == "purpose":
+            return replace(self, summary=_require_str(value, "purpose"))
+        if section_id == "responsibilities":
+            if isinstance(value, str):
+                items = [line.strip() for line in value.split("\n") if line.strip()]
+            else:
+                items = list(value)
+            return replace(self, responsibilities=_require_str_list(items, "responsibilities"))
+        if section_id == "scope_decision_making":
+            return replace(self, scope_decision_making=_require_str(value, "scope_decision_making"))
+        if section_id == "core_competencies":
+            return replace(self, core_competencies=_require_str(value, "core_competencies"))
+        if section_id == "level_expectations":
+            return replace(self, level_expectations=_require_str(value, "level_expectations"))
+        if section_id == "progression":
+            return replace(self, progression=_require_str(value, "progression"))
+        if section_id == "evidence_note":
+            return replace(self, evidence_note=_require_str(value, "evidence_note"))
+        if section_id == "classification":
+            return replace(self, classification=_require_str(value, "classification"))
+        raise KeyError(section_id)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -596,6 +739,15 @@ class RoleProfile:
             "summary": self.summary,
             "responsibilities": list(self.responsibilities),
             "competency_ids": list(self.competency_ids),
+            "family_name": self.family_name,
+            "track_name": self.track_name,
+            "level_label": self.level_label,
+            "classification": self.classification,
+            "scope_decision_making": self.scope_decision_making,
+            "core_competencies": self.core_competencies,
+            "level_expectations": self.level_expectations,
+            "progression": self.progression,
+            "evidence_note": self.evidence_note,
         }
 
     @classmethod
@@ -611,6 +763,15 @@ class RoleProfile:
             summary=payload.get("summary"),
             responsibilities=payload.get("responsibilities"),
             competency_ids=payload.get("competency_ids") or [],
+            family_name=payload.get("family_name") or "",
+            track_name=payload.get("track_name") or "",
+            level_label=payload.get("level_label") or "",
+            classification=payload.get("classification") or "strong_fit",
+            scope_decision_making=payload.get("scope_decision_making") or "",
+            core_competencies=payload.get("core_competencies") or "",
+            level_expectations=payload.get("level_expectations") or "",
+            progression=payload.get("progression") or "",
+            evidence_note=payload.get("evidence_note") or "",
         )
 
 
@@ -625,6 +786,7 @@ class DependencyEdge:
     target_id: str
     target_section: str
     notes: str = ""
+    source_version: int = 1
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "id", _require_str(self.id, "id"))
@@ -638,6 +800,12 @@ class DependencyEdge:
             _require_str(self.target_section, "target_section"),
         )
         object.__setattr__(self, "notes", _require_str(self.notes, "notes", allow_empty=True))
+        if (
+            not isinstance(self.source_version, int)
+            or isinstance(self.source_version, bool)
+            or self.source_version < 1
+        ):
+            raise ValueError("source_version must be an integer >= 1")
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -648,11 +816,15 @@ class DependencyEdge:
             "target_id": self.target_id,
             "target_section": self.target_section,
             "notes": self.notes,
+            "source_version": self.source_version,
         }
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> DependencyEdge:
         payload = _require_mapping(data, "dependency_edge")
+        version = payload.get("source_version", 1)
+        if isinstance(version, bool) or not isinstance(version, int):
+            raise ValueError("source_version must be an integer >= 1")
         return cls(
             id=payload.get("id"),
             source_type=payload.get("source_type"),
@@ -661,6 +833,7 @@ class DependencyEdge:
             target_id=payload.get("target_id"),
             target_section=payload.get("target_section"),
             notes=payload.get("notes") or "",
+            source_version=version,
         )
 
 

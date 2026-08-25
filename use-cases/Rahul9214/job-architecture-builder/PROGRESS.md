@@ -146,7 +146,7 @@ Phase 4 hardening: clustering uses field-weighted TF-IDF plus occupational score
 
 
 
-Phase 5 implements a SuperDocs adapter under `src/job_architecture/superdocs/`. Domain reasoning still does not call SuperDocs. HTTP details stay behind `SuperDocsClientProtocol`. All pytest coverage for this phase is offline (httpx MockTransport). The live smoke script is manual and is not part of pytest. Framework/profile document generation, dependency propagation, and UI remain later phases.
+Phase 5 implements a SuperDocs adapter under `src/job_architecture/superdocs/`. Domain reasoning still does not call SuperDocs. HTTP details stay behind `SuperDocsClientProtocol`. All pytest coverage for this phase is offline (httpx MockTransport). The live smoke script is manual and is not part of pytest.
 
 
 
@@ -154,17 +154,21 @@ Phase 5 implements a SuperDocs adapter under `src/job_architecture/superdocs/`. 
 
 
 
-\- \[ ] Dependency detection
+\- \[x] Dependency detection
 
-\- \[ ] Impact analysis
+\- \[x] Impact analysis
 
-\- \[ ] Proposed profile changes
+\- \[x] Proposed profile changes
 
-\- \[ ] Preservation measurement
+\- \[x] Preservation measurement
 
-\- \[ ] Review gate
+\- \[x] Review gate
 
-\- \[ ] Regression tests
+\- \[x] Regression tests
+
+
+
+Phase 6 generates a `FrameworkDocument` from architecture-domain objects: canonical IC1–IC5 and M1–M3, family competency matrices, employee-readable profiles, misfit/provisional review artifacts, and explicit `DependencyEdge` records. Level changes are planned as section-level `UpdatePlan`s, stay unapplied until approved, and are checked with deterministic section hashes. SuperDocs payload/instruction transforms exist but make no HTTP calls. Frontend, live publication, and DOCX templates remain later.
 
 
 
