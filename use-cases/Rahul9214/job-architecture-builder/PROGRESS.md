@@ -52,23 +52,23 @@
 
 
 
-\- \[ ] Define fictional company
+\- \[x] Define fictional company
 
-\- \[ ] Define job-family distribution
+\- \[x] Define job-family distribution
 
-\- \[ ] Build corpus A
+\- \[x] Build corpus A
 
-\- \[ ] Build independent corpus B
+\- \[x] Build independent corpus B
 
-\- \[ ] Include ambiguous roles
+\- \[x] Include ambiguous roles
 
-\- \[ ] Include title/scope conflict
+\- \[x] Include title/scope conflict
 
-\- \[ ] Include hybrid role
+\- \[x] Include hybrid role
 
-\- \[ ] Include sparse-evidence role
+\- \[x] Include sparse-evidence role
 
-\- \[ ] Validate fixture schemas
+\- \[x] Validate fixture schemas
 
 
 
@@ -76,23 +76,23 @@
 
 
 
-\- \[ ] Role evidence model
+\- \[x] Role evidence model
 
-\- \[ ] Job family model
+\- \[x] Job family model
 
-\- \[ ] Career track model
+\- \[x] Career track model
 
-\- \[ ] Level definition model
+\- \[x] Level definition model
 
-\- \[ ] Competency model
+\- \[x] Competency model
 
-\- \[ ] Role assessment model
+\- \[x] Role assessment model
 
-\- \[ ] Misfit/provisional model
+\- \[x] Misfit/provisional model
 
-\- \[ ] Role profile model
+\- \[x] Role profile model
 
-\- \[ ] Dependency graph
+\- \[x] Dependency graph (typed `DependencyEdge` only; traversal/propagation remains Phase 6)
 
 
 
