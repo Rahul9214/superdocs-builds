@@ -312,6 +312,7 @@ class LevelDefinition:
     autonomy: str
     impact: str
     leadership: str
+    people_management: str = ""
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "id", _require_str(self.id, "id"))
@@ -326,6 +327,11 @@ class LevelDefinition:
         object.__setattr__(self, "autonomy", _require_str(self.autonomy, "autonomy"))
         object.__setattr__(self, "impact", _require_str(self.impact, "impact"))
         object.__setattr__(self, "leadership", _require_str(self.leadership, "leadership"))
+        object.__setattr__(
+            self,
+            "people_management",
+            _require_str(self.people_management, "people_management", allow_empty=True),
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -338,6 +344,7 @@ class LevelDefinition:
             "autonomy": self.autonomy,
             "impact": self.impact,
             "leadership": self.leadership,
+            "people_management": self.people_management,
         }
 
     @classmethod
@@ -356,6 +363,7 @@ class LevelDefinition:
             autonomy=payload.get("autonomy"),
             impact=payload.get("impact"),
             leadership=payload.get("leadership"),
+            people_management=payload.get("people_management") or "",
         )
 
 

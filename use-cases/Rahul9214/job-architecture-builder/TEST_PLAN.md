@@ -6,23 +6,35 @@
 
 
 
-\- role evidence parsing
+\- role evidence parsing — implemented (Phase 4; offline, no SuperDocs)
 
-\- title independence
+\- title independence — implemented (metamorphic title-swap tests)
 
-\- family similarity
+\- family similarity — implemented (lexicon labels applied after corpus-level clustering)
 
-\- career-track assignment
+\- career-track assignment — implemented (people-management evidence, not title)
 
-\- level inference
+\- level inference — implemented (canonical IC1–IC5 and M1–M3; unoccupied M2/M3 remain in the catalog)
 
-\- evidence provenance
+\- corpus clustering — implemented (TF-IDF + occupational cosine, compatibility gate, title excluded)
 
-\- confidence calculation
+\- clustering diagnostics — implemented (cohesion, separation, nearest cluster, label confidence, bridges, unclustered members)
 
-\- provisional assignment
+\- cluster defensibility — implemented (incompatible functional evidence must not merge without cross-domain scores)
 
-\- misfit assignment
+\- title-independence of clustering — implemented (signature, neighbors, and membership survive title rename)
+
+\- evidence provenance — implemented (source excerpts on supporting/counter evidence)
+
+\- confidence calculation — implemented (coarse buckets, not fake precision)
+
+\- provisional assignment — implemented (sparse, hybrid, title/evidence conflict)
+
+\- misfit assignment — implemented (outside supported architecture)
+
+
+
+Phase 4 tests cover both synthetic corpora with the same engine. Reasoning source files are checked for fixture IDs, organization names, and corpus-specific branches. Hybrid, sparse, and misfit roles are asserted unclustered rather than absorbed for coverage.
 
 
 
@@ -30,17 +42,19 @@
 
 
 
-\- family definitions
+\- family definitions — implemented (canonical catalog; occupied families exposed by `build_architecture`)
 
-\- level definitions
+\- corpus-level clusters — implemented (`ArchitectureResult.clusters` / `.clustering`)
 
-\- career tracks
+\- level definitions — implemented (IC1–IC5, M1–M3)
 
-\- competency matrices
+\- career tracks — implemented (IC and people-manager)
 
-\- role profiles
+\- competency matrices — not started (later phase)
 
-\- dependency graph
+\- role profiles — not started (later phase)
+
+\- dependency graph — model only (traversal remains later)
 
 
 

@@ -100,19 +100,25 @@
 
 
 
-\- \[ ] Evidence extraction
+\- \[x] Evidence extraction
 
-\- \[ ] Family classification
+\- \[x] Family classification
 
-\- \[ ] Track assignment
+\- \[x] Corpus-level evidence clustering
 
-\- \[ ] Level inference
+\- \[x] Track assignment
 
-\- \[ ] Confidence/evidence explanation
+\- \[x] Level inference (IC1–IC5 and M1–M3)
 
-\- \[ ] Misfit handling
+\- \[x] Confidence/evidence explanation
 
-\- \[ ] Title independence tests
+\- \[x] Misfit handling
+
+\- \[x] Title independence tests
+
+
+
+Phase 4 hardening: clustering uses field-weighted TF-IDF plus occupational score cosine, with a compatibility gate so distinct crafts do not merge on generic JD language. Family catalog labels a cluster only after the group exists. Same-primary roles still need content overlap; hybrid, sparse, and misfit roles stay unclustered or appear as bridges. Canonical management levels remain M1–M3.
 
 
 
