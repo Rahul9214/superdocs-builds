@@ -26,7 +26,7 @@ The implementation is designed around three control principles:
 
 
 
-Phase 7A prepares a resumable live SuperDocs verification path on top of Phase 6 generation. Domain reasoning still does not call SuperDocs. The live CLI is manual, stops at human approval, and is not part of pytest. Live SuperDocs verification itself is **not complete** until a human runs it and records results in `docs/live-verification.md`. Frontend remains later.
+Phase 8 adds a reviewer-facing FastAPI + React workspace over the existing domain engine. Live SuperDocs Search was resumed on the same job id (no second POST), reached `completed`, and is recorded as verified/terminal in `docs/live-verification.md`. Architecture surfaces typed `title_conflict` values from domain assessment, not a keyword scan of counter-evidence. The web app stays useful offline without a SuperDocs key.
 
 
 
@@ -47,6 +47,67 @@ See:
 \- \[Test plan](TEST\_PLAN.md)
 
 
+
+## Reviewer web application
+
+The production reviewer UI wraps the same domain functions used by tests and the CLI. It does not reimplement clustering, framework generation, or impact analysis.
+
+In-memory workspace state is process-local (see `ASSUMPTIONS.md`). Re-analyze after restarting the API.
+
+### Offline / demo mode
+
+Leave `SUPERDOCS_API_KEY` unset. Architecture, exceptions, framework, profiles, change impact, human review, and local DOCX export all work. The SuperDocs status screen reports **not configured**. Live SuperDocs upload/search/export stay in `scripts/superdocs_live.py`.
+
+### Optional SuperDocs configuration
+
+Copy `.env.example` to `.env` and set `SUPERDOCS_API_KEY` only if you are running the live CLI. The web API never returns the key, Authorization headers, or other secrets. A configured key does **not** enable live SuperDocs export from the browser; `live_export_available` stays false.
+
+### Backend
+
+```text
+.venv\Scripts\pip install -e ".[dev]"
+.venv\Scripts\python -m job_architecture.web
+```
+
+Listens on `http://127.0.0.1:8000`. Override with `JOB_ARCH_HOST` / `JOB_ARCH_PORT`. Set `JOB_ARCH_RELOAD=1` during API work.
+
+### Frontend (development)
+
+```text
+cd web
+npm install
+npm run dev
+```
+
+Vite proxies `/api` to the backend. Open `http://127.0.0.1:5173`. If that port is already in use, Vite chooses another available local port.
+
+### Production build
+
+```text
+cd web
+npm install
+npm run build
+```
+
+Then start the backend. If `web/dist` exists, FastAPI also serves the built UI from `http://127.0.0.1:8000`.
+
+Frontend quality commands from `web/`:
+
+```text
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+```
+
+Backend tests remain:
+
+```text
+.venv\Scripts\python -m pytest
+.venv\Scripts\python -m compileall src tests
+```
+
+Web tests mock `fetch` and never call the live SuperDocs API.
 
 ## Run the tests
 
@@ -322,7 +383,7 @@ Deterministic SHA-256 hashes cover every structured profile section. After apply
 
 
 
-The adapter covers upload, multi-document sessions, search, templates, reviewed async edits, approval, and export. Phase 6 prepared framework/profile payloads and targeted edit instructions. Phase 7A adds orchestration, production DOCX artifacts, and a resumable manual CLI. Live verification rejected surgical attempts 1 and 2 (Complexity rewrite; duplicated baseline). Attempt 3 was approved (version + Scope only). Search was submitted and is not live-complete until a terminal poll. Frontend remains later.
+The adapter covers upload, multi-document sessions, search, templates, reviewed async edits, approval, and export. Phase 6 prepared framework/profile payloads and targeted edit instructions. Phase 7A adds orchestration, production DOCX artifacts, and a resumable manual CLI. Live verification rejected surgical attempts 1 and 2 (Complexity rewrite; duplicated baseline). Attempt 3 was approved (version + Scope only). Search was resumed on the same job id with no second POST; remote status reached `completed` with `verified=true`, `terminal=true`, and `has_result=true`. Phase 8 adds the reviewer web application over the same domain engine.
 
 
 

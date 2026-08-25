@@ -10,6 +10,8 @@
 
 \- title independence — implemented (metamorphic title-swap tests)
 
+\- typed title-versus-evidence conflict — implemented (generic seniority overstatement, management-title mismatch, and understated-scope kinds; title never assigns family, track, or level)
+
 \- family similarity — implemented (lexicon labels applied after corpus-level clustering)
 
 \- career-track assignment — implemented (people-management evidence, not title)
@@ -118,7 +120,7 @@ Phase 4 tests cover both synthetic corpora with the same engine. Reasoning sourc
 
 
 
-\- changes enter pending state — SuperDocs adapter implemented (offline); UI later
+\- changes enter pending state — SuperDocs adapter implemented (offline); reviewer web Review screen uses the same explicit approve/reject model locally
 
 \- approve applies accepted changes — adapter submits explicit per-change decisions
 
@@ -228,7 +230,7 @@ Offline Phase 7A orchestration tests (`tests/test_live_orchestration.py`, `tests
 
 
 
-Human live run: upload of four JD documents succeeded; templates passed; framework and profile live jobs were approved. The SuperDocs profile fill duplicated Level expectations; in-place repair was approved. Surgical attempt 1 was rejected (unrelated Complexity rewrite). Attempt 2 was rejected (duplicated baseline). Attempt 3 was approved (version + Scope only). Exported profile structure and preservation checks passed. Search was submitted and reached processing; it is not live-complete until a resume poll records a valid terminal result.
+Human live run: upload of four JD documents succeeded; templates passed; framework and profile live jobs were approved. The SuperDocs profile fill duplicated Level expectations; in-place repair was approved. Surgical attempt 1 was rejected (unrelated Complexity rewrite). Attempt 2 was rejected (duplicated baseline). Attempt 3 was approved (version + Scope only). Exported profile structure and preservation checks passed. Search was resumed on the same job id (no second POST) and reached `completed` with `verified=true`, `terminal=true`, and `has_result=true`.
 
 
 
@@ -264,7 +266,7 @@ Human live run: upload of four JD documents succeeded; templates passed; framewo
 
 
 
-\- API key absent from frontend — no frontend in this phase; key is server-side env only
+\- API key absent from frontend — reviewer UI never receives `SUPERDOCS_API_KEY`; `/api/superdocs/status` omits the key and auth headers
 
 \- API key absent from logs — settings/client/error repr redacts the key; auth headers are not logged
 
@@ -293,3 +295,15 @@ Primary synthetic organization used during implementation.
 
 
 Independent synthetic organization used to prove the logic is not hard-coded to Corpus A.
+
+
+
+## Reviewer web application
+
+
+
+Offline FastAPI tests: `tests/test_web_api.py`, `tests/test_web_acceptance.py`. They construct `create_app(WorkspaceService(WorkspaceStore()))` and never call the live SuperDocs API.
+
+
+
+Frontend tests (`web/`, Vitest + Testing Library) mock `fetch`. They cover navigation, corpus switching, architecture metrics, role evidence, title-conflict evidence, provisional/misfit rendering, framework level table, profile rendering, change-impact planning, before/after review, approve/reject, empty review, API error, and SuperDocs not-configured. They must not use a live SuperDocs key.

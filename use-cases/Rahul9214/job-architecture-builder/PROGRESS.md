@@ -230,13 +230,13 @@ Phase 6 generates a `FrameworkDocument` from architecture-domain objects: canoni
 
 \- \[x] Verification-gated local `finalize-domain` (`domain_applied` not inferred from remote `completed`)
 
-\- \[ ] Search resume poll to a proven terminal result
+\- \[x] Search resume poll to a proven terminal result
 
-\- \[ ] Live verification record completed (Search still unproven terminal)
+\- \[x] Live verification record completed (Search verified terminal; framework export still not run)
 
 
 
-Do not treat Search as live-verified. Surgical attempts 1 and 2 were rejected and remain in history. Attempt 3 was approved (`mutation_applied=true`). Domain apply is local and verification-gated. Search was submitted and reached processing; resume the same job id until a valid terminal result is recorded.
+Search was resumed on the same job id with no second POST. Remote status reached `completed` (`verified=true`, `terminal=true`, `has_result=true`). Surgical attempts 1 and 2 were rejected and remain in history. Attempt 3 was approved (`mutation_applied=true`). Domain apply is local and verification-gated.
 
 
 
@@ -244,50 +244,30 @@ Do not treat Search as live-verified. Surgical attempts 1 and 2 were rejected an
 
 ## Phase 7 — UI
 
+- [x] Corpus workspace
+- [x] Architecture view
+- [x] Misfit/provisional review
+- [x] Role profile view
+- [x] Change-impact view
+- [x] Human review
+- [x] Export flow
+- [x] Responsive behavior
 
-
-\- \[ ] Corpus workspace
-
-\- \[ ] Architecture view
-
-\- \[ ] Misfit/provisional review
-
-\- \[ ] Role profile view
-
-\- \[ ] Change-impact view
-
-\- \[ ] Human review
-
-\- \[ ] Export flow
-
-\- \[ ] Responsive behavior
-
-
+The reviewer app is FastAPI + React/Vite inside this use-case directory. It calls existing domain services. SuperDocs live export is not offered from the browser. Live Search is recorded as verified/terminal in `docs/live-verification.md`.
 
 ## Phase 8 — Verification
 
+- [x] Unit tests
+- [x] Integration tests
+- [x] SuperDocs contract tests
+- [x] Corpus A acceptance
+- [x] Corpus B acceptance
+- [x] Failure/retry tests
+- [ ] Secret scan
+- [ ] Clean-clone verification
+- [x] Build verification
+- [ ] README finalized
+- [ ] Screenshots added
+- [ ] Final PR prepared
 
-
-\- \[ ] Unit tests
-
-\- \[ ] Integration tests
-
-\- \[ ] SuperDocs contract tests
-
-\- \[ ] Corpus A acceptance
-
-\- \[ ] Corpus B acceptance
-
-\- \[ ] Failure/retry tests
-
-\- \[ ] Secret scan
-
-\- \[ ] Clean-clone verification
-
-\- \[ ] Build verification
-
-\- \[ ] README finalized
-
-\- \[ ] Screenshots added
-
-\- \[ ] Final PR prepared
+Phase 8 web API and frontend tests are offline. Typed `title_conflict` is domain-derived (not a counter-evidence keyword scan). Live Search is recorded as verified/terminal. Secret scan / clean-clone / screenshots / final README / PR are still open. Do not treat deployment or final acceptance as complete.

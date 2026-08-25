@@ -52,6 +52,23 @@ class CareerTrackKind(StrEnum):
     PEOPLE_MANAGER = "people_manager"
 
 
+class TitleConflictKind(StrEnum):
+    TITLE_SENIORITY_OVERSTATES_EVIDENCE = "title_seniority_overstates_evidence"
+    TITLE_MANAGEMENT_CONFLICT = "title_management_conflict"
+    TITLE_UNDERSTATES_SCOPE = "title_understates_scope"
+
+
+def parse_title_conflict_kind(value: Any, field_name: str = "kind") -> TitleConflictKind:
+    if isinstance(value, TitleConflictKind):
+        return value
+    raw = _require_str(value, field_name)
+    try:
+        return TitleConflictKind(raw)
+    except ValueError as exc:
+        allowed = ", ".join(kind.value for kind in TitleConflictKind)
+        raise ValueError(f"{field_name} must be one of: {allowed}") from exc
+
+
 def parse_fit_status(value: Any, field_name: str = "fit_status") -> FitStatus:
     if isinstance(value, FitStatus):
         return value
@@ -490,6 +507,51 @@ def _parse_misfit_reasons(value: Any, field_name: str) -> list[MisfitReason]:
 
 
 @dataclass(frozen=True)
+class TitleConflict:
+    """Title-vs-evidence mismatch. Title never sets family, track, or level."""
+
+    kind: TitleConflictKind
+    summary: str
+    title_signal: str
+    evidence_result: str
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "kind", parse_title_conflict_kind(self.kind))
+        object.__setattr__(self, "summary", _require_str(self.summary, "summary"))
+        object.__setattr__(self, "title_signal", _require_str(self.title_signal, "title_signal"))
+        object.__setattr__(self, "evidence_result", _require_str(self.evidence_result, "evidence_result"))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "kind": self.kind.value,
+            "summary": self.summary,
+            "title_signal": self.title_signal,
+            "evidence_result": self.evidence_result,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> TitleConflict:
+        payload = _require_mapping(data, "title_conflict")
+        return cls(
+            kind=payload.get("kind"),
+            summary=payload.get("summary"),
+            title_signal=payload.get("title_signal"),
+            evidence_result=payload.get("evidence_result"),
+        )
+
+
+def _parse_title_conflict(value: Any, field_name: str) -> TitleConflict | None:
+    if value is None:
+        return None
+    if isinstance(value, TitleConflict):
+        return value
+    try:
+        return TitleConflict.from_dict(value)
+    except ValueError as exc:
+        raise ValueError(f"{field_name}: {exc}") from exc
+
+
+@dataclass(frozen=True)
 class RoleAssessment:
     """Proposed architecture assignment for a single role."""
 
@@ -502,6 +564,7 @@ class RoleAssessment:
     supporting_evidence: list[str] = field(default_factory=list)
     counter_evidence: list[str] = field(default_factory=list)
     misfit_reasons: list[MisfitReason] = field(default_factory=list)
+    title_conflict: TitleConflict | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "role_id", _require_str(self.role_id, "role_id"))
@@ -542,6 +605,7 @@ class RoleAssessment:
             "misfit_reasons",
             _parse_misfit_reasons(list(self.misfit_reasons), "misfit_reasons"),
         )
+        object.__setattr__(self, "title_conflict", _parse_title_conflict(self.title_conflict, "title_conflict"))
         if self.fit_status is FitStatus.STRONG_FIT and self.proposed_family is None:
             raise ValueError("strong_fit assessments require proposed_family")
         if self.fit_status is FitStatus.MISFIT and not self.misfit_reasons:
@@ -558,6 +622,7 @@ class RoleAssessment:
             "supporting_evidence": list(self.supporting_evidence),
             "counter_evidence": list(self.counter_evidence),
             "misfit_reasons": [reason.to_dict() for reason in self.misfit_reasons],
+            "title_conflict": None if self.title_conflict is None else self.title_conflict.to_dict(),
         }
 
     @classmethod
@@ -573,6 +638,7 @@ class RoleAssessment:
             supporting_evidence=payload.get("supporting_evidence") or [],
             counter_evidence=payload.get("counter_evidence") or [],
             misfit_reasons=payload.get("misfit_reasons") or [],
+            title_conflict=payload.get("title_conflict"),
         )
 
 

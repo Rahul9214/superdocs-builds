@@ -8,13 +8,13 @@ Never paste `SUPERDOCS_API_KEY` or other credentials here.
 
 | Field | Value |
 | --- | --- |
-| Date | 2026-08-25 (upload through first surgical review); 2026-08-26 (repair, surgical attempts 2–3, export, search submit, local domain-apply gate) |
+| Date | 2026-08-25 (upload through first surgical review); 2026-08-26 (repair, surgical attempts 2–3, export, search submit, search resume poll, local domain-apply gate) |
 | Operator | human |
 | Environment (`SUPERDOCS_BASE_URL`) | not recorded here |
 | Local session id | `job-arch-live` |
 | SuperDocs session id (if different) | not copied into git |
 | Runtime state file | `.runtime/live-state.json` |
-| Notes | Multi-document upload and templates passed. Framework and profile reviewed edits were approved. The original profile fill duplicated Level expectations; in-place repair was approved. Surgical attempt 1 was rejected (unrelated Complexity rewrite). Surgical attempt 2 was rejected (duplicated live baseline). Surgical attempt 3 was approved (version + Scope only). Review prevented the incorrect changes. Rejected attempts remain in history. Search was submitted and reached processing; Search verification is not complete until a resume poll records a valid terminal result. Do not copy live document or job ids into git. |
+| Notes | Multi-document upload and templates passed. Framework and profile reviewed edits were approved. The original profile fill duplicated Level expectations; in-place repair was approved. Surgical attempt 1 was rejected (unrelated Complexity rewrite). Surgical attempt 2 was rejected (duplicated live baseline). Surgical attempt 3 was approved (version + Scope only). Review prevented the incorrect changes. Rejected attempts remain in history. Search was resumed on the same job id (estimated mutating SuperDocs calls: 0; no second POST `/v1/chat/async`). Remote status reached `completed`. Recorded `verified=true`, `terminal=true`, `has_result=true`. Do not copy live document or job ids into git. |
 
 ## Demo subset
 
@@ -55,7 +55,7 @@ Search query: `Find documents or role profiles that reference the IC4 level.`
 | repaired/exported profile structure | **passed** | checked `exports/profile.docx` | | semantic structure PASS; Level expectations section count = 1; header = IC4 definition version 2; no structural violations | | | | |
 | `verify-export` preservation | **passed** | checked `exports/profile.docx` | | new sequencing-veto fragment found; purpose preserved; responsibilities preserved; autonomy/complexity/impact/leadership/people_management unchanged (complexity: `Matches the published complexity of this level.`) | | | | **passed** with those observed checks |
 | `finalize-domain` | succeeded (local) | no SuperDocs call | | `domain_applied=true`; dependency/source version 1 → 2; idempotent re-run keeps version 2; rejected attempts remain in history (2) | | | | |
-| `search` | submitted; reached **processing**; not proven terminal | live job id not copied into git | not recorded | resume must poll the same job id and must not POST another search. Live Search verification is **not complete** until that poll records a valid terminal result | | | | |
+| `search` | resumed same job; remote **completed**; verified | live job id not copied into git | not recorded | `verified=true`; `terminal=true`; `has_result=true`. Estimated mutating SuperDocs calls: 0. No second POST `/v1/chat/async`. Search-result body is not copied into git. | | | | |
 | `export --kind framework` | not run | | | | | | | |
 
 ## Multi-document roster
@@ -100,7 +100,7 @@ Do not claim byte identity of DOCX container files. SuperDocs may rewrite packag
 | SuperDocs reports `status=completed` after a rejected review | Remote execution finished, but mutation was not applied | Persist `review_outcome` and `mutation_applied` separately from `remote_job_status`. `domain_applied` stays false until verification-gated finalize. |
 | SuperDocs `replace_span` can target only the Level expectations header/`IC4 (definition version 1)` line and insert the full block above the existing dimension lines | Live profile had each canonical dimension twice | Do not SuperDocs-fill an already-filled profile. Repair in place, then surgical-update only on a verified unique block. |
 | SuperDocs exported Level expectations as one paragraph with multiple runs and `w:br` | First structural verifier treated layout as missing fields | Parse canonical markers, not Word paragraph boundaries. |
-| Search job can remain in processing after submit | Live Search is not complete on submit | Resume polls the same job id; do not POST another search. Mark complete only on a valid terminal result. |
+| Search job can remain in processing after submit | Submit is not a terminal result | Resume polled the same job id (no second POST). Later poll reached `completed` with `verified=true`, `terminal=true`, `has_result=true`. |
 
 ## Decision log
 

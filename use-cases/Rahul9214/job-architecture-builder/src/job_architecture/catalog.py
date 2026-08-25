@@ -474,6 +474,10 @@ TITLE_MANAGER_CLAIM = re.compile(
     r"\b(engineering manager|people manager|director|vice president|head of)\b",
     re.IGNORECASE,
 )
+# Junior IC labels used only after evidence-based level inference.
+TITLE_JUNIOR_IC_LEVELS = frozenset({"IC1", "IC2"})
+# High-scope IC labels used only after evidence-based level inference.
+TITLE_HIGH_SCOPE_IC_LEVELS = frozenset({"IC4", "IC5"})
 
 FAMILY_ASSIGN_MIN = 2.0
 FAMILY_HYBRID_RATIO = 0.58
