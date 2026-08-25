@@ -40,11 +40,20 @@ def profile_to_template_payload(profile: RoleProfile) -> dict[str, object]:
 
 
 def update_plan_to_edit_instruction(plan: UpdatePlan) -> str:
+    changed = ", ".join(plan.changed_rendered_fields) or plan.section_id
+    preserved = ", ".join(plan.preserved_rendered_fields)
+    preserve_line = (
+        f"Preserve these {plan.section_id} fields exactly, including any fallback wording: {preserved}."
+        if preserved
+        else "Do not rewrite unrelated fields inside the section."
+    )
     return (
         f"In the role profile, update ONLY the '{plan.section_id}' section. "
+        f"Inside that section, update ONLY these fields: {changed}. "
+        f"{preserve_line} "
         "Do not rewrite the rest of the profile. Do not change purpose, "
-        "responsibilities, or any other section. Replace the current "
-        f"'{plan.section_id}' text with exactly the following:\n\n{plan.after}"
+        "responsibilities, or any other section. The resulting "
+        f"'{plan.section_id}' text must be exactly:\n\n{plan.after}"
     )
 
 

@@ -15,13 +15,20 @@ from job_architecture.graph import (
     validate_dependency_graph,
 )
 from job_architecture.hashes import hash_all_sections, hash_payload, hash_section
+from job_architecture.level_text import (
+    RENDERED_FIELDS,
+    changed_dimensions,
+    field_preservation_violations,
+    patch_level_expectations,
+    rendered_fields_for,
+)
 from job_architecture.models import (
     PROFILE_SECTION_IDS,
     DependencyEdge,
     LevelDefinition,
     RoleProfile,
 )
-from job_architecture.profiles import render_level_expectations
+from job_architecture.profile_structure import validate_level_expectations_block
 
 
 class ChangeStatus(StrEnum):
@@ -50,6 +57,7 @@ class ImpactAnalysis:
     reason: str
     old_dependency_version: int
     new_dependency_version: int
+    changed_dimensions: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -63,6 +71,9 @@ class UpdatePlan:
     old_hash: str
     new_hash: str
     status: ChangeStatus = ChangeStatus.PLANNED
+    changed_dimensions: tuple[str, ...] = ()
+    changed_rendered_fields: tuple[str, ...] = ()
+    preserved_rendered_fields: tuple[str, ...] = ()
 
     def with_status(self, status: ChangeStatus) -> UpdatePlan:
         return replace(self, status=status)
@@ -105,6 +116,7 @@ def analyze_level_change(
             "Impact analysis requires the same level id on old and new definitions"
         )
     validate_dependency_graph(dependency_graph, profiles, levels)
+    changed = tuple(sorted(changed_dimensions(old_level_definition, new_level_definition)))
     edges = dependency_graph.for_source(SOURCE_LEVEL, old_level_definition.id)
     profile_ids = {item.id for item in profiles}
     affected_sections: list[ImpactedSection] = []
@@ -135,9 +147,11 @@ def analyze_level_change(
         reason=(
             f"Canonical {old_level_definition.label} changed from version "
             f"{old_level_definition.version} to {new_level_definition.version}"
+            + (f"; dimensions: {', '.join(changed)}" if changed else "")
         ),
         old_dependency_version=old_level_definition.version,
         new_dependency_version=new_level_definition.version,
+        changed_dimensions=changed,
     )
 
 
@@ -150,15 +164,30 @@ def plan_level_updates(
     profiles: Sequence[RoleProfile],
 ) -> tuple[UpdatePlan, ...]:
     by_id = {item.id: item for item in profiles}
+    canonical = changed_dimensions(old_level, new_level)
+    changed_fields = tuple(sorted(rendered_fields_for(canonical)))
+    preserved_fields = tuple(item for item in RENDERED_FIELDS if item not in set(changed_fields))
     plans: list[UpdatePlan] = []
     for item in analysis.affected_sections:
         if item.section_id != SECTION_LEVEL_EXPECTATIONS:
             continue
         profile = by_id[item.profile_id]
         before = _as_text(profile.section_value(item.section_id))
-        after = render_level_expectations(new_level)
+        structure = validate_level_expectations_block(before)
+        if not structure.ok:
+            raise DependencyGraphError(
+                f"Refusing to plan a surgical update against malformed level_expectations "
+                f"on {profile.id}: " + "; ".join(structure.violations)
+            )
+        after = patch_level_expectations(before, new_level, canonical)
         if before == after:
             continue
+        field_violations = field_preservation_violations(before, after, changed_fields)
+        if field_violations:
+            raise DependencyGraphError(
+                "Dimension-surgical planning rewrote unchanged fields: "
+                + "; ".join(field_violations)
+            )
         edge = next(edge for edge in dependency_graph.edges if edge.id == item.edge_id)
         plans.append(
             UpdatePlan(
@@ -171,6 +200,9 @@ def plan_level_updates(
                 old_hash=hash_section(profile, item.section_id),
                 new_hash=hash_payload(after),
                 status=ChangeStatus.PLANNED,
+                changed_dimensions=tuple(sorted(canonical)),
+                changed_rendered_fields=changed_fields,
+                preserved_rendered_fields=preserved_fields,
             )
         )
     return tuple(plans)
@@ -238,6 +270,13 @@ def apply_approved_plans(
 
     after = snapshot_hashes(updated_profiles)
     report = compare_preservation(before, after, intended)
+    field_violations = _dimension_violations(plans, before_profiles=profiles, after_profiles=updated_profiles)
+    if field_violations:
+        report = PreservationReport(
+            changed_sections=report.changed_sections,
+            unchanged_sections=report.unchanged_sections,
+            violations=report.violations + field_violations,
+        )
     if not report.ok:
         raise DependencyGraphError("Preservation verification failed: " + "; ".join(report.violations))
     return updated_profiles, graph, report, tuple(finished)
@@ -276,3 +315,25 @@ def compare_preservation(
         unchanged_sections=tuple(unchanged),
         violations=tuple(violations),
     )
+
+
+def _dimension_violations(
+    plans: Sequence[UpdatePlan],
+    *,
+    before_profiles: Sequence[RoleProfile],
+    after_profiles: Sequence[RoleProfile],
+) -> tuple[str, ...]:
+    before_by_id = {item.id: item for item in before_profiles}
+    after_by_id = {item.id: item for item in after_profiles}
+    violations: list[str] = []
+    for plan in plans:
+        if plan.status is ChangeStatus.REJECTED:
+            continue
+        allowed = plan.changed_rendered_fields
+        if not allowed:
+            continue
+        before_text = _as_text(before_by_id[plan.profile_id].section_value(plan.section_id))
+        after_text = _as_text(after_by_id[plan.profile_id].section_value(plan.section_id))
+        for item in field_preservation_violations(before_text, after_text, allowed):
+            violations.append(f"{plan.profile_id}:{plan.section_id}: {item}")
+    return tuple(violations)

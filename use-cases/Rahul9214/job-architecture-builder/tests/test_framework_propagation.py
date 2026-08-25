@@ -16,10 +16,18 @@ from job_architecture.fixtures import load_corpus
 from job_architecture.framework import generate_framework
 from job_architecture.graph import DependencyGraph, DependencyGraphError, validate_dependency_graph
 from job_architecture.hashes import hash_section
+from job_architecture.level_text import (
+    FIELD_COMPLEXITY,
+    changed_dimensions,
+    parse_level_expectations,
+    patch_level_expectations,
+)
 from job_architecture.models import (
     PROFILE_SECTION_IDS,
     DependencyEdge,
     FitStatus,
+    LevelDefinition,
+    RoleProfile,
 )
 from job_architecture.propagation import (
     ChangeStatus,
@@ -40,6 +48,7 @@ GENERATION_FILES = (
     "propagation.py",
     "documents.py",
     "hashes.py",
+    "level_text.py",
 )
 
 
@@ -314,6 +323,150 @@ def test_corpus_b_uses_same_generation_path():
     assert {item.family_id for item in framework.competency_matrices} == {item.id for item in framework.families}
 
 
+_FALLBACK_BLOCK = (
+    "IC4 (definition version 1)\n"
+    "Scope: scope A\n"
+    "Autonomy / decision authority: auto A\n"
+    "Complexity: fallback F\n"
+    "Impact: impact A\n"
+    "Leadership: lead A\n"
+    "People-management expectations: people A"
+)
+
+
+def _level(**overrides) -> LevelDefinition:
+    payload = {
+        "id": "ic4",
+        "family_id": "canonical",
+        "track_id": "individual_contributor",
+        "label": "IC4",
+        "rank": 4,
+        "scope": "scope A",
+        "autonomy": "auto A",
+        "impact": "impact A",
+        "leadership": "lead A",
+        "people_management": "people A",
+        "complexity": "canonical C",
+        "decision_authority": "auto A",
+        "version": 1,
+    }
+    payload.update(overrides)
+    return LevelDefinition(**payload)
+
+
+def _demo_profile(text: str = _FALLBACK_BLOCK) -> RoleProfile:
+    return RoleProfile(
+        id="profile-demo",
+        role_id="role-demo",
+        family_id="engineering",
+        track_id="individual_contributor",
+        level_id="ic4",
+        display_title="Demo",
+        summary="purpose text",
+        responsibilities=["do work"],
+        level_expectations=text,
+        scope_decision_making="unrelated scope section",
+        core_competencies="unrelated competencies",
+        progression="unrelated progression",
+        evidence_note="unrelated note",
+    )
+
+
+def _demo_graph() -> DependencyGraph:
+    return DependencyGraph(
+        edges=(
+            DependencyEdge(
+                id="level_definition:ic4->profile-demo:level_expectations",
+                source_type="level_definition",
+                source_id="ic4",
+                target_type="role_profile",
+                target_id="profile-demo",
+                target_section="level_expectations",
+                source_version=1,
+            ),
+        )
+    )
+
+
+def _plan_change(old: LevelDefinition, new: LevelDefinition, profile: RoleProfile | None = None):
+    profile = profile or _demo_profile()
+    graph = _demo_graph()
+    analysis = analyze_level_change(old, new, graph, (profile,), levels=(old, new))
+    plans = plan_level_updates(
+        analysis,
+        old_level=old,
+        new_level=new,
+        dependency_graph=graph,
+        profiles=(profile,),
+    )
+    return profile, analysis, plans
+
+
+def test_changed_dimensions_detects_scope_and_version_only():
+    old = _level()
+    new = replace(old, scope="scope B", version=2)
+    assert changed_dimensions(old, new) == frozenset({"scope", "version"})
+
+
+def test_scope_change_preserves_fallback_complexity_text():
+    old = _level(scope="scope A", complexity="canonical C")
+    new = replace(old, scope="scope B", version=2)
+    stored = _FALLBACK_BLOCK
+    after = patch_level_expectations(stored, new, changed_dimensions(old, new))
+    parsed_before = parse_level_expectations(stored)
+    parsed_after = parse_level_expectations(after)
+    assert parsed_after.value_for("scope") == "scope B"
+    assert parsed_after.raw_for(FIELD_COMPLEXITY) == parsed_before.raw_for(FIELD_COMPLEXITY)
+    assert parsed_after.raw_for(FIELD_COMPLEXITY) == "Complexity: fallback F"
+    assert "definition version 2" in after
+    profile, _, plans = _plan_change(old, new, _demo_profile(stored))
+    assert len(plans) == 1
+    assert plans[0].after == after
+    assert "complexity" in plans[0].preserved_rendered_fields
+    assert "scope" in plans[0].changed_rendered_fields
+    assert "canonical C" not in plans[0].after
+    instruction = update_plan_to_edit_instruction(plans[0])
+    assert "scope" in instruction
+    assert "Preserve these" in instruction
+    assert "complexity" in instruction
+    approved = approve_plans(plans)
+    updated, graph, report, finished = apply_approved_plans(
+        approved, (profile,), _demo_graph(), new_level=new
+    )
+    assert report.ok
+    assert updated[0].core_competencies == profile.core_competencies
+    assert updated[0].summary == profile.summary
+    assert parse_level_expectations(updated[0].level_expectations).raw_for(FIELD_COMPLEXITY) == (
+        "Complexity: fallback F"
+    )
+    assert finished[0].status is ChangeStatus.APPLIED
+    assert graph.for_source("level_definition", "ic4")[0].source_version == 2
+
+
+def test_single_dimension_impact_change_is_surgical():
+    old = _level()
+    new = replace(old, impact="impact B", version=2)
+    _, _, plans = _plan_change(old, new)
+    assert changed_dimensions(old, new) == frozenset({"impact", "version"})
+    parsed = parse_level_expectations(plans[0].after)
+    assert parsed.value_for("impact") == "impact B"
+    assert parsed.raw_for(FIELD_COMPLEXITY) == "Complexity: fallback F"
+    assert parsed.value_for("scope") == "scope A"
+    assert parsed.value_for("leadership") == "lead A"
+
+
+def test_single_dimension_leadership_change_is_surgical():
+    old = _level()
+    new = replace(old, leadership="lead B", version=2)
+    _, _, plans = _plan_change(old, new)
+    assert changed_dimensions(old, new) == frozenset({"leadership", "version"})
+    parsed = parse_level_expectations(plans[0].after)
+    assert parsed.value_for("leadership") == "lead B"
+    assert parsed.raw_for(FIELD_COMPLEXITY) == "Complexity: fallback F"
+    assert parsed.value_for("scope") == "scope A"
+    assert parsed.value_for("impact") == "impact A"
+
+
 def test_generation_logic_has_no_corpus_specific_identifiers():
     src = PROJECT_ROOT / "src" / "job_architecture"
     forbidden = (
@@ -388,13 +541,31 @@ def test_hero_acceptance_corpus_a_measurable_preservation():
     expected_untouched = len(framework.profiles) * len(PROFILE_SECTION_IDS) - changed_sections
     assert untouched == expected_untouched
     by_id = {item.id: item for item in updated}
+    changed_canonical = changed_dimensions(old, new)
+    changed_fields: set[str] = set()
+    preserved_fields: set[str] = set()
     for profile in occupants:
+        before_parsed = parse_level_expectations(profile.level_expectations)
+        after_parsed = parse_level_expectations(by_id[profile.id].level_expectations)
         assert "Surgical change for preservation proof" in by_id[profile.id].level_expectations
+        assert after_parsed.raw_for(FIELD_COMPLEXITY) == before_parsed.raw_for(FIELD_COMPLEXITY)
+        assert after_parsed.raw_for("autonomy") == before_parsed.raw_for("autonomy")
+        assert after_parsed.raw_for("impact") == before_parsed.raw_for("impact")
+        assert after_parsed.raw_for("leadership") == before_parsed.raw_for("leadership")
+        assert after_parsed.raw_for("people_management") == before_parsed.raw_for("people_management")
         assert by_id[profile.id].summary == profile.summary
         assert by_id[profile.id].responsibilities == profile.responsibilities
         assert by_id[profile.id].core_competencies == profile.core_competencies
+        for field_id in ("header", "scope", "autonomy", "complexity", "impact", "leadership", "people_management"):
+            if before_parsed.raw_for(field_id) == after_parsed.raw_for(field_id):
+                preserved_fields.add(field_id)
+            else:
+                changed_fields.add(field_id)
     print(
         f"affected profiles: {affected}; changed sections: {changed_sections}; "
-        f"untouched sections verified: {untouched}; violations: 0"
+        f"untouched sections verified: {untouched}; violations: 0; "
+        f"canonical dimensions changed: {sorted(changed_canonical)}; "
+        f"profile fields changed: {sorted(changed_fields)}; "
+        f"profile fields preserved: {sorted(preserved_fields)}"
     )
     assert architecture.assessments

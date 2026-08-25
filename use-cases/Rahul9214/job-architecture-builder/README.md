@@ -26,7 +26,7 @@ The implementation is designed around three control principles:
 
 
 
-Phase 6 framework generation and surgical propagation are implemented on top of Phase 4 reasoning and the Phase 5 SuperDocs adapter. Domain generation still does not call SuperDocs.
+Phase 7A prepares a resumable live SuperDocs verification path on top of Phase 6 generation. Domain reasoning still does not call SuperDocs. The live CLI is manual, stops at human approval, and is not part of pytest. Live SuperDocs verification itself is **not complete** until a human runs it and records results in `docs/live-verification.md`. Frontend remains later.
 
 
 
@@ -61,7 +61,7 @@ python -m venv .venv
 
 
 
-No live SuperDocs key is required for pytest. The only runtime HTTP dependency is httpx (explicit timeouts, streaming export, MockTransport). Fixtures live under `fixtures/corpus-a`, `fixtures/corpus-b`, and `fixtures/superdocs`.
+No live SuperDocs key is required for pytest. Runtime dependencies are httpx (HTTP adapter) and python-docx (deterministic live DOCX artifact generation only; isolated to `src/job_architecture/live/docxgen.py`). Fixtures live under `fixtures/corpus-a`, `fixtures/corpus-b`, `fixtures/superdocs`, and `fixtures/live`.
 
 
 
@@ -218,6 +218,58 @@ The script uploads `fixtures/superdocs/smoke-role.md`, starts a reviewed edit, p
 
 
 
+## Live SuperDocs verification (manual)
+
+
+
+Phase 7A adds a resumable CLI above `SuperDocsClientProtocol`. It does not auto-approve, does not print the API key, and writes only non-secret ids to gitignored `.runtime/`.
+
+
+
+Generate local DOCX artifacts (no SuperDocs call):
+
+
+
+```text
+python scripts/superdocs_live.py prepare
+```
+
+
+
+Then, after code review, a human may run one small live path. Every mutating command prints intent and requires `--confirm` (or typing `YES`):
+
+
+
+```text
+python scripts/superdocs_live.py upload --confirm
+python scripts/superdocs_live.py framework --confirm
+python scripts/superdocs_live.py decide --job framework --change CHANGE_ID:approve --confirm
+python scripts/superdocs_live.py profile --confirm
+python scripts/superdocs_live.py repair-profile --confirm
+python scripts/superdocs_live.py decide --job profile_repair --change CHANGE_ID:approve --confirm
+python scripts/superdocs_live.py export --kind profile --confirm
+python scripts/superdocs_live.py verify-profile-structure --path exports/profile.docx
+python scripts/superdocs_live.py verify-export --path exports/profile.docx
+python scripts/superdocs_live.py finalize-domain
+python scripts/superdocs_live.py search --confirm
+python scripts/superdocs_live.py status
+python scripts/superdocs_live.py annotate-review --job surgical --review-outcome rejected
+```
+
+
+
+`upload` sends four Corpus A JD DOCX files into one session (`open_mode=new_focused`) plus framework and role-profile templates. After the session roster is loaded, persisted documents are reconciled by `document_id`. `profile` uploads the deterministic filled role-profile DOCX. It does not ask SuperDocs to regenerate already-decided section values. Asking SuperDocs to fill an already-filled Level expectations header can duplicate every dimension. `repair-profile` is an in-place reviewed edit that removes only the duplicate block and stops at human approval. `verify-profile-structure` checks semantic Level expectations fields (canonical markers, not Word paragraph boundaries) and prints a physical paragraph/run summary. `verify-export` records preservation checks against extracted Word text. `finalize-domain` is local: `domain_applied` becomes true only after an approved mutation, `mutation_applied=true`, and both structure and preservation verification against the exported document. Remote `completed` is not a domain apply. `search` resumes a saved job id by polling; it does not POST a second search. `surgical-update` refuses to start until the live baseline is structurally valid (`authoritative_upload` or `verified`). A remote job with `status=completed` is not enough: `review_outcome=rejected` and `mutation_applied=false` mean the mutation was not applied. Rejected attempts stay in history.
+
+
+
+Record the live run in `docs/live-verification.md`. Unexecuted rows stay `not run`. Do not claim DOCX container byte identity after export; compare extracted Word text / structured sections.
+
+
+
+pytest must not invoke this script or the live API.
+
+
+
 ## Canonical framework and surgical propagation
 
 
@@ -254,11 +306,11 @@ Edges are explicit. A canonical level definition points at a profile's `level_ex
 
 
 
-`analyze_level_change` returns affected profile ids, affected sections, unaffected ids, and old/new dependency versions. `plan_level_updates` emits section-level `UpdatePlan`s in `planned` status. Human review is `approved` or `rejected`. Only approved plans apply. Rejected plans leave profiles and dependency versions unchanged.
+`analyze_level_change` returns affected profile ids, affected sections, unaffected ids, old/new dependency versions, and the exact canonical dimensions that changed. `plan_level_updates` patches only the rendered `level_expectations` fields that correspond to those dimensions. Unchanged fields, including fallback wording, stay identical. Human review is `approved` or `rejected`. Only approved plans apply. Rejected plans leave profiles and dependency versions unchanged. A completed SuperDocs job is not a domain apply: persist `remote_job_status`, `review_outcome`, and `mutation_applied` separately. `domain_applied` becomes true only after verification-gated finalize. `completed` + `rejected` means `mutation_applied=false` and `domain_applied=false`, and a corrected retry may start a new reviewed edit.
 
 
 
-Deterministic SHA-256 hashes cover every structured profile section. After apply, intended sections must change and every other section/profile must keep the same hash. `PreservationReport.violations` is a hard failure. Planning the same canonical change a second time yields no semantic edits.
+Deterministic SHA-256 hashes cover every structured profile section. After apply, intended sections must change and every other section/profile must keep the same hash. Unchanged level-expectation fields must remain byte-identical. `PreservationReport.violations` is a hard failure. Planning the same canonical change a second time yields no semantic edits.
 
 
 
@@ -270,7 +322,7 @@ Deterministic SHA-256 hashes cover every structured profile section. After apply
 
 
 
-The adapter covers upload, multi-document sessions, search, templates, reviewed async edits, approval, and export. Phase 6 prepared framework/profile payloads and targeted edit instructions. Frontend and live publication remain later.
+The adapter covers upload, multi-document sessions, search, templates, reviewed async edits, approval, and export. Phase 6 prepared framework/profile payloads and targeted edit instructions. Phase 7A adds orchestration, production DOCX artifacts, and a resumable manual CLI. Live verification rejected surgical attempts 1 and 2 (Complexity rewrite; duplicated baseline). Attempt 3 was approved (version + Scope only). Search was submitted and is not live-complete until a terminal poll. Frontend remains later.
 
 
 

@@ -88,9 +88,27 @@ Phase 4 tests cover both synthetic corpora with the same engine. Reasoning sourc
 
 \- correct dependent section updated — implemented (`level_expectations` only for a level change)
 
+\- dimension-surgical field update — implemented (`changed_dimensions` + patch only corresponding rendered fields)
+
+\- fallback wording for unchanged dimensions preserved — implemented (no opportunistic rewrite)
+
 \- unrelated sections preserved — implemented (hash comparison)
 
+\- unchanged level-expectation fields preserved — implemented (per-field raw-line comparison)
+
 \- preservation hashes stable — implemented (`PreservationReport`; unexpected changes are errors)
+
+\- rejected SuperDocs review does not apply domain update — implemented (`review_outcome=rejected`, `mutation_applied=false`, `domain_applied=false` even if remote job status is completed)
+
+\- domain apply is verification-gated — implemented (`finalize-domain` requires approved mutation, `mutation_applied=true`, structure pass, preservation pass; remote `completed` is not enough)
+
+\- domain apply is idempotent and keeps rejected history — implemented
+
+\- completed remote job is not a successful mutation — implemented (resume uses `review_outcome` + `mutation_applied`, not `status=completed` alone)
+
+\- rejected surgical attempt remains retryable — implemented (new `live-edit:surgical:N` operation; rejected attempt kept in history)
+
+\- mixed review is partial, not full apply or blind retry — implemented (`review_outcome=mixed`, `partial_mutation=true`)
 
 \- repeated propagation is safe — implemented (second plan is empty; second apply is a no-op)
 
@@ -147,6 +165,70 @@ Offline contract tests (`tests/test_superdocs_*.py`) use `httpx.MockTransport`. 
 
 
 Live smoke (manual only, not pytest): `python scripts/superdocs_smoke.py`
+
+
+
+Live verification CLI (manual only, not pytest): `python scripts/superdocs_live.py …`
+
+
+
+Offline Phase 7A orchestration tests (`tests/test_live_orchestration.py`, `tests/test_live_review_resume.py`, `tests/test_live_profile_baseline.py`, `tests/test_profile_structure.py`) use `FakeProtocolClient` where HTTP would otherwise be required. They do not read `SUPERDOCS_API_KEY` and must not call the live API.
+
+
+
+\- live DOCX artifacts — implemented (deterministic `python-docx` generation from corpus markdown + templates)
+
+\- multi-document upload — implemented (four JD DOCX files; roster asserts distinct coexisting ids)
+
+\- template setup — implemented (upload or reuse by filename)
+
+\- reviewed edit stops for approval — implemented (framework / surgical / profile repair)
+
+\- approve/reject — implemented (explicit `ReviewDecision`s only; empty decision list is an error)
+
+\- authoritative filled-profile publish — implemented (upload deterministic DOCX; no SuperDocs fill)
+
+\- duplicate Level expectations detected — implemented (`profile_structure` semantic marker parser; Word paragraph/run layout is not a field boundary)
+
+\- Word layout variants of one Level expectations block — implemented (one paragraph per field; concatenated paragraph; multiple runs / `w:br`; duplicate/missing markers still fail)
+
+\- surgical-update refuses a malformed live baseline — implemented
+
+\- in-place reviewed profile repair — implemented (`repair-profile`; stops at human approval)
+
+\- resume from saved non-secret state — implemented (`.runtime/` ids; no API key)
+
+\- duplicate completed operation is not resent — implemented
+
+\- completed + approved reviewed edit is not duplicated — implemented
+
+\- completed + rejected reviewed edit starts a new async edit — implemented
+
+\- awaiting_approval resumes the same job — implemented
+
+\- mixed decisions keep partial semantics — implemented
+
+\- process restart retains review resume semantics — implemented
+
+\- surgical instruction targets one section — implemented (`level_expectations` only)
+
+\- search demo — implemented (`cross_session_search=true`; graph remains surgical authority)
+
+\- existing processing/completed search resumes without another POST — implemented
+
+\- export — implemented
+
+\- failed live step preserves resumable state — implemented
+
+\- secrets never enter saved state — implemented
+
+\- roster durable-id reconciliation — implemented (upload may omit durable id; GET roster is authoritative; known durable ids are never replaced with null; conflicting ids fail)
+
+\- repair null durable ids without re-upload — implemented (resume matches `document_id`, copies roster durable ids, does not POST again)
+
+
+
+Human live run: upload of four JD documents succeeded; templates passed; framework and profile live jobs were approved. The SuperDocs profile fill duplicated Level expectations; in-place repair was approved. Surgical attempt 1 was rejected (unrelated Complexity rewrite). Attempt 2 was rejected (duplicated baseline). Attempt 3 was approved (version + Scope only). Exported profile structure and preservation checks passed. Search was submitted and reached processing; it is not live-complete until a resume poll records a valid terminal result.
 
 
 
