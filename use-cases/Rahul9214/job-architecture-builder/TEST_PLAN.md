@@ -100,17 +100,17 @@ Phase 4 tests cover both synthetic corpora with the same engine. Reasoning sourc
 
 
 
-\- changes enter pending state
+\- changes enter pending state — SuperDocs adapter implemented (offline); UI later
 
-\- approve applies accepted changes
+\- approve applies accepted changes — adapter submits explicit per-change decisions
 
-\- reject leaves content unchanged
+\- reject leaves content unchanged — adapter sends `approved=false`
 
-\- partial decision handling
+\- partial decision handling — mixed item-level decisions; `ApprovalResult.all_approved` is false unless every item is approved
 
-\- completion blocked while required decisions remain
+\- completion blocked while required decisions remain — polling stops at `awaiting_approval`; nothing is auto-approved
 
-\- publication remains explicit
+\- publication remains explicit — export is a separate call and is not implied by job completion
 
 
 
@@ -118,25 +118,35 @@ Phase 4 tests cover both synthetic corpora with the same engine. Reasoning sourc
 
 
 
-\- upload
+Offline contract tests (`tests/test_superdocs_*.py`) use `httpx.MockTransport`. They do not read `SUPERDOCS_API_KEY` and must not call the live API.
 
-\- multi-document session
 
-\- document targeting
 
-\- search
+\- upload — implemented (`POST /v1/documents/upload`, default `open_mode=new_focused`)
 
-\- template use
+\- multi-document session — implemented (session roster + explicit document ids)
 
-\- async edit
+\- document targeting — implemented (`document_id` on reviewed edit)
 
-\- awaiting approval
+\- search — implemented as async chat with `cross_session_search=true` (no dedicated search endpoint in the official API)
 
-\- approve
+\- template use — implemented (`POST /v1/templates/upload-base64`, `GET /v1/templates`)
 
-\- reject
+\- async edit — implemented (`POST /v1/chat/async` with `approval_mode=ask_every_time`)
 
-\- export
+\- awaiting approval — implemented (poll `GET /v1/jobs/{job_id}`; distinguish HITL vs `continue_prompt`)
+
+\- approve — implemented (`POST /v1/chat/{session_id}/approve`)
+
+\- reject — implemented (same endpoint, `approved=false`)
+
+\- export — implemented (`POST /v1/documents/export`, streamed bytes; empty/JSON bodies are failure)
+
+\- proposed-change double JSON parse — implemented (`parse_pending_changes`)
+
+
+
+Live smoke (manual only, not pytest): `python scripts/superdocs_smoke.py`
 
 
 
@@ -144,27 +154,27 @@ Phase 4 tests cover both synthetic corpora with the same engine. Reasoning sourc
 
 
 
-\- missing API key
+\- missing API key — implemented (`ConfigurationError`)
 
-\- invalid API key
+\- invalid API key — implemented (HTTP 401/403 → `AuthenticationError`)
 
-\- timeout
+\- timeout — implemented (GET → `TransientHttpError` with bounded retry; mutating timeout → `AmbiguousOutcomeError`, no retry)
 
-\- malformed response
+\- malformed response — implemented (`MalformedResponseError` / `ProposedChangeParseError`)
 
-\- upload failure
+\- upload failure — implemented (typed HTTP errors; mutating timeout is ambiguous)
 
-\- async job failure
+\- async job failure — implemented (`JobFailedError`); polling timeout is `JobTimeoutError` (job may still be running)
 
-\- approval failure
+\- approval failure — implemented (`ApprovalError`)
 
-\- export failure
+\- export failure — implemented (`ExportError`; no success without received bytes)
 
-\- retry after uncertain outcome
+\- retry after uncertain outcome — mutating calls are not blind-retried
 
-\- duplicate request
+\- duplicate request — in-process `operation_key` returns the already-completed result
 
-\- idempotency
+\- idempotency — not exactly-once; see README retry/idempotency section
 
 
 
@@ -172,15 +182,15 @@ Phase 4 tests cover both synthetic corpora with the same engine. Reasoning sourc
 
 
 
-\- API key absent from frontend
+\- API key absent from frontend — no frontend in this phase; key is server-side env only
 
-\- API key absent from logs
+\- API key absent from logs — settings/client/error repr redacts the key; auth headers are not logged
 
-\- API key absent from fixtures
+\- API key absent from fixtures — offline fake uses `sk_test_offline_not_a_real_key`
 
-\- API key absent from repository history
+\- API key absent from repository history — `.env` is gitignored; `.env.example` has a placeholder
 
-\- no real employee data
+\- no real employee data — synthetic fixtures only
 
 
 

@@ -126,23 +126,27 @@ Phase 4 hardening: clustering uses field-weighted TF-IDF plus occupational score
 
 
 
-\- \[ ] Upload
+\- \[x] Upload
 
-\- \[ ] Multi-document
+\- \[x] Multi-document
 
-\- \[ ] Search
+\- \[x] Search
 
-\- \[ ] Templates
+\- \[x] Templates
 
-\- \[ ] Async reviewed edits
+\- \[x] Async reviewed edits
 
-\- \[ ] Approval flow
+\- \[x] Approval flow
 
-\- \[ ] Export
+\- \[x] Export
 
-\- \[ ] Error handling
+\- \[x] Error handling
 
-\- \[ ] Idempotency/retry boundaries
+\- \[x] Idempotency/retry boundaries
+
+
+
+Phase 5 implements a SuperDocs adapter under `src/job_architecture/superdocs/`. Domain reasoning still does not call SuperDocs. HTTP details stay behind `SuperDocsClientProtocol`. All pytest coverage for this phase is offline (httpx MockTransport). The live smoke script is manual and is not part of pytest. Framework/profile document generation, dependency propagation, and UI remain later phases.
 
 
 

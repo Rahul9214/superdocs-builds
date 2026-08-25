@@ -26,11 +26,11 @@ The implementation is designed around three control principles:
 
 
 
-Phase 4 architecture reasoning is implemented and independently testable.
+Phase 5 SuperDocs integration is implemented as a protocol-backed REST adapter. Phase 4 architecture reasoning remains independently testable.
 
 
 
-The reasoning core parses synthetic Markdown job descriptions into `RoleEvidence`, clusters roles from evidence tokens (not titles), then proposes family, track, and canonical level with explicit fit status (`strong_fit`, `provisional`, `misfit`). It does not call SuperDocs or any model provider.
+The reasoning core parses synthetic Markdown job descriptions into `RoleEvidence`, clusters roles from evidence tokens (not titles), then proposes family, track, and canonical level with explicit fit status (`strong_fit`, `provisional`, `misfit`). Domain reasoning still does not call SuperDocs or any model provider; only `src/job_architecture/superdocs/` talks to the SuperDocs HTTP API.
 
 
 
@@ -48,20 +48,20 @@ See:
 
 
 
-## Run the reasoning tests
+## Run the tests
 
 
 
 ```text
 python -m venv .venv
-.venv\Scripts\pip install pytest
+.venv\Scripts\pip install -e ".[dev]"
 .venv\Scripts\python -m pytest
 .venv\Scripts\python -m compileall src tests
 ```
 
 
 
-No API key is required. Fixtures live under `fixtures/corpus-a` and `fixtures/corpus-b`.
+No live SuperDocs key is required for pytest. The only runtime HTTP dependency is httpx (explicit timeouts, streaming export, MockTransport). Fixtures live under `fixtures/corpus-a`, `fixtures/corpus-b`, and `fixtures/superdocs`.
 
 
 
@@ -122,23 +122,107 @@ IC1–IC5 on the individual-contributor track. M1–M3 on the people-manager tra
 
 
 
-## Planned SuperDocs usage
+## SuperDocs adapter
 
 
 
-The implementation will demonstrate:
+HTTP code lives in `src/job_architecture/superdocs/`. Application code should depend on `SuperDocsClientProtocol`, not on httpx.
 
 
 
-\- multi-document workflows;
+Official surfaces used:
 
-\- document search;
 
-\- reusable templates;
 
-\- explicit human review;
+\- Upload: `POST /v1/documents/upload` (`open_mode=new_focused` so extra JDs/templates do not replace each other)
 
-\- document export.
+\- Session roster: `GET /v1/sessions/{session_id}/documents`
+
+\- Saved files: `GET /v1/documents`, `POST /v1/sessions/{session_id}/documents/open`
+
+\- Templates: `POST /v1/templates/upload-base64`, `GET /v1/templates`
+
+\- Reviewed async edit: `POST /v1/chat/async` with `approval_mode=ask_every_time`
+
+\- Job poll: `GET /v1/jobs/{job_id}`
+
+\- Approve/reject: `POST /v1/chat/{session_id}/approve` (top-level `approved` is always required)
+
+\- Large-edit continue: `POST /v1/chat/{session_id}/continue` when `metadata.awaiting_kind=continue_prompt`
+
+\- Search: async chat with `cross_session_search=true` (there is no dedicated search endpoint)
+
+\- Export: `POST /v1/documents/export` (file bytes; streamed to a path or binary handle)
+
+
+
+Configuration (server-side only): `SUPERDOCS_API_KEY`, `SUPERDOCS_BASE_URL`, `REQUEST_TIMEOUT_SECONDS`. A missing key raises `ConfigurationError`. The key is never included in `repr`, error strings, or fixtures.
+
+
+
+### Long-running jobs
+
+
+
+Mapped states: `queued` (`pending`), `processing` (`in_progress`), `awaiting_approval`, `completed`, `failed`. Slow processing is not treated as failure. `JobTimeoutError` means this process stopped waiting; the SuperDocs job may still be running. Default poll wait is 300 seconds; jobs can take minutes.
+
+
+
+### Review semantics
+
+
+
+Reviewed edits always send `ask_every_time`. Polling stops at `awaiting_approval`. Proposed changes expose before/after/reason/identifier. Nothing is approved unless `submit_review` is called with explicit per-change decisions. Mixed decisions are not treated as all-approved (`ApprovalResult.all_approved`). Calling `/approve` on a `continue_prompt` pause is the wrong endpoint; use `continue_large_edit`.
+
+
+
+Proposed-change payloads may arrive as a JSON-encoded string (SSE-style double parse). `parse_pending_changes` handles decoded objects, JSON strings, nested JSON strings, and malformed input. Malformed content raises `ProposedChangeParseError` instead of becoming an empty valid change list.
+
+
+
+### Retry and idempotency
+
+
+
+Not exactly-once.
+
+
+
+\- Safe retry: GET job/roster/template/document list, bounded, only on timeout/429/5xx.
+
+\- Unsafe / do not blind-retry: POST upload, chat/async, approve, continue, export after timeout or an ambiguous transport failure (`AmbiguousOutcomeError`). Inspect jobs or the session roster before sending again.
+
+\- Already-completed: an in-process `operation_key` returns the prior successful result. This cache is per client instance and is not durable across processes.
+
+
+
+### Offline vs live tests
+
+
+
+pytest uses `httpx.MockTransport` and never needs a live key. Do not run paid SuperDocs operations from tests.
+
+
+
+Manual live smoke (requires `SUPERDOCS_API_KEY`, not invoked by pytest):
+
+
+
+```text
+python scripts/superdocs_smoke.py
+```
+
+
+
+The script uploads `fixtures/superdocs/smoke-role.md`, starts a reviewed edit, prints pending changes, and stops without approving unless you pass `--decide approve|reject`. Export is opt-in via `--export PATH`.
+
+
+
+## Later SuperDocs usage
+
+
+
+The adapter now covers upload, multi-document sessions, search, templates, reviewed async edits, approval, and export. Later phases will use it to generate framework/profile documents, propagate dependencies, and present a UI. No frontend and no framework generation in Phase 5.
 
 
 
