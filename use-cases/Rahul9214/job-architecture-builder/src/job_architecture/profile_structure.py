@@ -64,12 +64,6 @@ class StructureReport:
     field_values: dict[str, str] = field(default_factory=dict)
     layout: dict[str, int] = field(default_factory=dict)
 
-    def raise_if_invalid(self, *, context: str) -> None:
-        if self.ok:
-            return
-        details = "; ".join(self.violations) or "invalid profile structure"
-        raise ValueError(f"{context}: {details}")
-
 
 def apply_proposed_span_replace(text: str, before: str, after: str) -> str:
     """Apply a SuperDocs-style single span replacement. Does not mutate `text`."""

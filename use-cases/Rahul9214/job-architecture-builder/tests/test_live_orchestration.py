@@ -374,6 +374,13 @@ def test_export_writes_destination(tmp_path: Path) -> None:
     assert path == destination
     assert destination.read_bytes() == fake.export_bytes
     assert "export:framework" in orch.state().completed_steps
+    request = fake.export_requests[-1]
+    assert "html" in request
+    assert "document_id" not in request
+    assert "durable_document_id" not in request
+    assert "IC1" in request["html"]
+    assert "People Manager" in request["html"]
+    assert "Software Engineer, Backend" not in request["html"]
 
 
 def test_failed_live_step_preserves_resumable_state(tmp_path: Path) -> None:

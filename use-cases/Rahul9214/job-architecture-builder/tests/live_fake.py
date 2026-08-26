@@ -10,6 +10,7 @@ from job_architecture.superdocs.models import (
     ApprovalResult,
     AsyncJobHandle,
     DocumentRef,
+    ExportRequest,
     ExportResult,
     JobSnapshot,
     ProposedChange,
@@ -38,6 +39,7 @@ class FakeProtocolClient:
         self.continues: list[str] = []
         self.searches: list[dict[str, Any]] = []
         self.exports: list[str] = []
+        self.export_requests: list[dict[str, Any]] = []
         self.documents: list[DocumentRef] = []
         self.template_refs: list[TemplateRef] = []
         self.jobs: dict[str, JobSnapshot] = {}
@@ -295,14 +297,12 @@ class FakeProtocolClient:
     def export_document(
         self,
         destination: Path | BinaryIO,
+        request: ExportRequest,
         *,
-        session_id: str | None = None,
-        html: str | None = None,
-        format: str = "docx",
-        filename: str | None = None,
         operation_key: str | None = None,
     ) -> ExportResult:
         self.calls.append("export_document")
+        self.export_requests.append(request.json_body())
         if isinstance(destination, (str, Path)):
             path = Path(destination)
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -311,9 +311,9 @@ class FakeProtocolClient:
         else:
             destination.write(self.export_bytes)
             dest = None
-        self.exports.append(dest or filename or "export")
+        self.exports.append(dest or request.filename or "export")
         return ExportResult(
-            filename=filename or "export.docx",
+            filename=request.filename or "export.docx",
             content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             byte_count=len(self.export_bytes),
             destination=dest,

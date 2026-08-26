@@ -17,7 +17,7 @@ const CorpusContext = createContext<CorpusContextValue | null>(null);
 
 export function CorpusProvider({ children }: { children: ReactNode }) {
   const [corpora, setCorpora] = useState<CorpusSummary[]>([]);
-  const [corpusId, setCorpusId] = useState("corpus-a");
+  const [corpusId, setCorpusId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,6 +29,12 @@ export function CorpusProvider({ children }: { children: ReactNode }) {
     try {
       const payload = await api.corpora();
       setCorpora(payload.corpora);
+      setCorpusId((existing) => {
+        if (existing && payload.corpora.some((item) => item.corpus_id === existing)) {
+          return existing;
+        }
+        return payload.corpora[0]?.corpus_id ?? "";
+      });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Unable to load corpora.");
     } finally {

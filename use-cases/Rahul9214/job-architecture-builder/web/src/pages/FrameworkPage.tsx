@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../api";
+import { PageHeader } from "../components/PageHeader";
 import { Empty, ErrorBanner, Loading } from "../components/Status";
 import { useCorpus } from "../corpus";
 import type { FrameworkPayload } from "../types";
@@ -37,8 +38,9 @@ export function FrameworkPage() {
 
   return (
     <section>
-      <h1>Framework</h1>
-      <p>{framework.purpose}</p>
+      <PageHeader kicker={framework.organization} title="Framework">
+        {framework.purpose}
+      </PageHeader>
       <ul>
         {framework.principles.map((item) => (
           <li key={item}>{item}</li>
@@ -123,7 +125,7 @@ function LevelTable({
     <section>
       <h2>{title}</h2>
       <div className="table-wrap">
-        <table>
+        <table className="level-table">
           <thead>
             <tr>
               <th>Level</th>

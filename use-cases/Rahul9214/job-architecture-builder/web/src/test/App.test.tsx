@@ -52,7 +52,7 @@ describe("reviewer application", () => {
   it("shows architecture metrics, title-conflict evidence, and the role drawer", async () => {
     const user = userEvent.setup();
     renderApp("/architecture");
-    expect(await screen.findByText("total roles")).toBeInTheDocument();
+    expect(await screen.findByText("Total roles")).toBeInTheDocument();
     expect(screen.getByText("21")).toBeInTheDocument();
     expect(screen.getByText("Senior Software Engineer, Workplace Tools")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Title vs evidence" })).toBeInTheDocument();

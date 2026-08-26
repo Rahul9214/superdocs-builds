@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../api";
+import { PageHeader } from "../components/PageHeader";
 import { Empty, ErrorBanner, Loading } from "../components/Status";
 import { useCorpus } from "../corpus";
 import type { ProfileDetail, ProfileSummary } from "../types";
@@ -49,8 +50,9 @@ export function ProfilesPage() {
 
   return (
     <section>
-      <h1>Role profiles</h1>
-      <p>Employee-readable profiles for classified roles. Provisional profiles stay marked as such.</p>
+      <PageHeader title="Role profiles">
+        Employee-readable profiles for classified roles. Provisional profiles stay marked as such.
+      </PageHeader>
       {profiles.length === 0 ? <Empty>No normalized profiles in this corpus.</Empty> : null}
       <div className="grid-2">
         {profiles.map((item) => (
@@ -76,7 +78,7 @@ export function ProfilesPage() {
       ) : (
         <div className="grid-2">
           {artifacts.map((item) => (
-            <article className="card" key={item.role_id}>
+            <article className="card exception-card misfit" key={item.role_id}>
               <h3>{item.title ?? item.display_title}</h3>
               <p>{item.summary ?? item.message}</p>
               <p>Shown as a review artifact, not a fabricated normalized profile.</p>
@@ -107,7 +109,7 @@ function ProfilePanel({ profile, onClose }: { profile: ProfileDetail; onClose: (
   return (
     <>
       <button type="button" className="backdrop" aria-label="Close profile" onClick={onClose} />
-      <aside className="drawer" role="dialog" aria-labelledby="profile-title">
+      <aside className="drawer profile-doc" role="dialog" aria-labelledby="profile-title">
         <div className="actions" style={{ justifyContent: "space-between" }}>
           <h2 id="profile-title">{profile.display_title}</h2>
           <button type="button" className="ghost" onClick={onClose}>

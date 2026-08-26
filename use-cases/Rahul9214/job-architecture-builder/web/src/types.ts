@@ -227,5 +227,3 @@ export type SuperDocsStatus = {
   live_export_reason: string;
   live: { present: boolean; completed_steps?: string[]; workflow?: string; domain_applied?: boolean };
 };
-
-export type ApiErrorBody = { ok: false; code: string; message: string };

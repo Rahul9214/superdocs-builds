@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "../api";
 import { useCorpus } from "../corpus";
 import type { ArchitectureSummary, SuperDocsStatus } from "../types";
+import { MetricsRow } from "../components/Metric";
+import { PageHeader } from "../components/PageHeader";
 import { ErrorBanner, Loading } from "../components/Status";
 
 export function OverviewPage() {
@@ -18,7 +20,7 @@ export function OverviewPage() {
       try {
         const superdocs = await api.superdocs();
         if (!cancelled) setStatus(superdocs);
-        if (analyzed) {
+        if (analyzed && corpusId) {
           const architecture = await api.architecture(corpusId);
           if (!cancelled) setSummary(architecture);
         } else if (!cancelled) {
@@ -37,13 +39,15 @@ export function OverviewPage() {
   if (loading && !summary) return <Loading label="Loading workspace" />;
   if (error) return <ErrorBanner message={error} />;
 
+  const metrics = summary?.metrics;
+  const nextAction = nextUsefulAction(analyzed, metrics);
+
   return (
     <section>
-      <h1>Overview</h1>
-      <p>
+      <PageHeader kicker={summary?.organization ?? "Workspace"} title="Overview">
         Sources → Architecture → Exceptions → Framework → Profiles → Change impact → Human review →
         Export. The application uses the same domain engine as the CLI.
-      </p>
+      </PageHeader>
       {!analyzed ? (
         <div className="empty">
           This corpus has not been analyzed yet.
@@ -53,15 +57,13 @@ export function OverviewPage() {
             </button>
           </div>
         </div>
-      ) : summary ? (
-        <div className="metrics">
-          {Object.entries(summary.metrics).map(([key, value]) => (
-            <div className="metric" key={key}>
-              <strong>{value}</strong>
-              <span>{key.replace(/_/g, " ")}</span>
-            </div>
-          ))}
-        </div>
+      ) : metrics ? (
+        <>
+          <MetricsRow metrics={metrics} />
+          <p className="health-note">
+            {healthCopy(metrics)} {nextAction}
+          </p>
+        </>
       ) : null}
       <div className="grid-2">
         <article className="card">
@@ -83,5 +85,30 @@ export function OverviewPage() {
         </article>
       </div>
     </section>
+  );
+}
+
+function healthCopy(metrics: ArchitectureSummary["metrics"]): string {
+  const occupied = metrics.strong_fits + metrics.provisional;
+  return `${metrics.proposed_families} families and ${metrics.tracks} tracks cover ${occupied} classified roles. ${metrics.misfits} misfit ${metrics.misfits === 1 ? "role sits" : "roles sit"} outside the architecture.`;
+}
+
+function nextUsefulAction(
+  analyzed: boolean,
+  metrics: ArchitectureSummary["metrics"] | undefined,
+): ReactNode {
+  if (!analyzed || !metrics) return null;
+  if (metrics.misfits > 0 || metrics.provisional > 0) {
+    return (
+      <>
+        Next: review <Link to="/exceptions">exceptions</Link>.
+      </>
+    );
+  }
+  return (
+    <>
+      Next: inspect <Link to="/architecture">clusters</Link> or a{" "}
+      <Link to="/impact">canonical level change</Link>.
+    </>
   );
 }

@@ -8,6 +8,7 @@ from typing import BinaryIO, Protocol, Sequence
 from job_architecture.superdocs.models import (
     ApprovalResult,
     AsyncJobHandle,
+    ExportRequest,
     ExportResult,
     JobSnapshot,
     ReviewDecision,
@@ -103,10 +104,7 @@ class SuperDocsClientProtocol(Protocol):
     def export_document(
         self,
         destination: Path | BinaryIO,
+        request: ExportRequest,
         *,
-        session_id: str | None = None,
-        html: str | None = None,
-        format: str = "docx",
-        filename: str | None = None,
         operation_key: str | None = None,
     ) -> ExportResult: ...

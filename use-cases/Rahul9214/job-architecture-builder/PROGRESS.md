@@ -38,9 +38,9 @@
 
 \- \[x] Initial directory skeleton created
 
-\- \[ ] Foundation files populated
+\- \[x] Foundation files populated
 
-\- \[ ] Repository boundary validated
+\- \[x] Repository boundary validated
 
 \- \[ ] Foundation commit created
 
@@ -232,7 +232,7 @@ Phase 6 generates a `FrameworkDocument` from architecture-domain objects: canoni
 
 \- \[x] Search resume poll to a proven terminal result
 
-\- \[x] Live verification record completed (Search verified terminal; framework export still not run)
+\- \[x] Live verification record completed (Search verified terminal; framework export attempts 1–2 failed with a source JD; attempt 3 HTML semantic PASS; framework reviewed edit proven)
 
 
 
@@ -263,11 +263,19 @@ The reviewer app is FastAPI + React/Vite inside this use-case directory. It call
 - [x] Corpus A acceptance
 - [x] Corpus B acceptance
 - [x] Failure/retry tests
-- [ ] Secret scan
-- [ ] Clean-clone verification
+- [x] Secret scan
+- [x] Clean-clone verification
 - [x] Build verification
-- [ ] README finalized
-- [ ] Screenshots added
+- [x] README finalized
+- [x] Screenshots added
 - [ ] Final PR prepared
 
-Phase 8 web API and frontend tests are offline. Typed `title_conflict` is domain-derived (not a counter-evidence keyword scan). Live Search is recorded as verified/terminal. Secret scan / clean-clone / screenshots / final README / PR are still open. Do not treat deployment or final acceptance as complete.
+Phase 9 recorded the assignment audit, manual UI acceptance, visual QA, screenshots, secret check, and a clean-clone of `274866e`. Live framework export attempts 1–2 HTTP-succeeded but returned a source JD; attempt 3 used documented HTML export and semantic verification passed. Do not treat the GitHub PR as opened.
+
+## Production hardening
+
+- [x] Empty Phase-1 `backend/` and `frontend/` scaffolds removed (implementation lives in `src/` and `web/`)
+- [x] Proven-unused Python helpers removed; SuperDocs `from_env` kept as a public constructor
+- [x] Frontend consumes API metrics; corpus default is the first loaded corpus, not a hardcoded id
+- [x] Reviewer UI visual polish (tokens, hierarchy, Change Impact as the primary change screen)
+- [ ] Acceptance commit (not created in this session)

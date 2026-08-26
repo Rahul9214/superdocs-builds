@@ -21,7 +21,7 @@ from job_architecture.superdocs.errors import (
     RateLimitError,
     TransientHttpError,
 )
-from job_architecture.superdocs.models import ReviewDecision
+from job_architecture.superdocs.models import ExportRequest, ReviewDecision
 from tests.superdocs_fake import (
     OFFLINE_API_KEY,
     SAMPLE_CHANGE,
@@ -324,16 +324,29 @@ def test_export_success(tmp_path: Path):
     fake = FakeSuperDocsAPI()
     client = make_client(fake)
     dest = tmp_path / "out.docx"
-    result = client.export_document(dest, session_id="sess", format="docx")
+    html = "<h1>Job architecture</h1><h2>Purpose</h2><p>Approved.</p>"
+    result = client.export_document(
+        dest,
+        ExportRequest(session_id="sess", html=html, format="docx", filename="out.docx"),
+    )
     assert result.byte_count == len(fake.export_bytes)
     assert dest.read_bytes() == fake.export_bytes
+    body = fake.json_bodies[-1]
+    assert body["session_id"] == "sess"
+    assert body["html"] == html
+    assert body["format"] == "docx"
+    assert "document_id" not in body
+    assert "durable_document_id" not in body
 
 
 def test_export_stream_to_buffer():
     fake = FakeSuperDocsAPI()
     client = make_client(fake)
     buffer = io.BytesIO()
-    result = client.export_document(buffer, session_id="sess")
+    result = client.export_document(
+        buffer,
+        ExportRequest(session_id="sess", html="<h1>Profile</h1><p>Exact content.</p>"),
+    )
     assert result.byte_count > 0
     assert buffer.getvalue() == fake.export_bytes
 
@@ -343,7 +356,10 @@ def test_export_failure():
     fake.status_overrides[("POST", "/v1/documents/export")] = 500
     client = make_client(fake)
     with pytest.raises(ExportError):
-        client.export_document(io.BytesIO(), session_id="sess")
+        client.export_document(
+            io.BytesIO(),
+            ExportRequest(session_id="sess", html="<p>content</p>"),
+        )
 
 
 def test_export_no_false_success_on_empty_or_json():
@@ -351,12 +367,27 @@ def test_export_no_false_success_on_empty_or_json():
     fake.export_empty = True
     client = make_client(fake)
     with pytest.raises(ExportError, match="no bytes"):
-        client.export_document(io.BytesIO(), session_id="sess")
+        client.export_document(
+            io.BytesIO(),
+            ExportRequest(session_id="sess", html="<p>content</p>"),
+        )
 
     fake.export_empty = False
     fake.export_as_json = True
     with pytest.raises(ExportError, match="JSON"):
-        client.export_document(io.BytesIO(), session_id="sess")
+        client.export_document(
+            io.BytesIO(),
+            ExportRequest(session_id="sess", html="<p>content</p>"),
+        )
+
+
+def test_session_export_refuses_empty_html():
+    fake = FakeSuperDocsAPI()
+    client = make_client(fake)
+    with pytest.raises(ExportError, match="Export HTML is empty"):
+        ExportRequest(session_id="sess", html="")
+    assert fake.json_bodies == []
+    assert ("POST", "/v1/documents/export") not in fake.calls
 
 
 def test_client_repr_hides_key():

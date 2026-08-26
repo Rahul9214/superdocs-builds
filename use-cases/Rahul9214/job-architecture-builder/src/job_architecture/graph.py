@@ -38,10 +38,6 @@ class DependencyGraph:
     def for_profile(self, profile_id: str) -> tuple[DependencyEdge, ...]:
         return tuple(edge for edge in self.edges if edge.target_id == profile_id)
 
-    def replace_edge(self, updated: DependencyEdge) -> DependencyGraph:
-        edges = tuple(updated if edge.id == updated.id else edge for edge in self.edges)
-        return DependencyGraph(edges=edges)
-
 
 def _edge_id(source_type: str, source_id: str, target_id: str, section: str) -> str:
     return f"{source_type}:{source_id}->{target_id}:{section}"

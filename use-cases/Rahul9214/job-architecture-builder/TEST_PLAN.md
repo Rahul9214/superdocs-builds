@@ -146,7 +146,7 @@ Offline contract tests (`tests/test_superdocs_*.py`) use `httpx.MockTransport`. 
 
 \- multi-document session — implemented (session roster + explicit document ids)
 
-\- document targeting — implemented (`document_id` on reviewed edit)
+\- document targeting — implemented (`document_id` on reviewed edit). Export does **not** target by document id; current docs require `html` / `session_id` / `upload_id`.
 
 \- search — implemented as async chat with `cross_session_search=true` (no dedicated search endpoint in the official API)
 
@@ -160,7 +160,7 @@ Offline contract tests (`tests/test_superdocs_*.py`) use `httpx.MockTransport`. 
 
 \- reject — implemented (same endpoint, `approved=false`)
 
-\- export — implemented (`POST /v1/documents/export`, streamed bytes; empty/JSON bodies are failure)
+\- export — implemented (`POST /v1/documents/export` with documented `html` + `session_id` + `format` + `filename`/`options.filename`; empty HTML fails before HTTP; streamed bytes; empty/JSON bodies are failure)
 
 \- proposed-change double JSON parse — implemented (`parse_pending_changes`)
 
@@ -174,7 +174,7 @@ Live verification CLI (manual only, not pytest): `python scripts/superdocs_live.
 
 
 
-Offline Phase 7A orchestration tests (`tests/test_live_orchestration.py`, `tests/test_live_review_resume.py`, `tests/test_live_profile_baseline.py`, `tests/test_profile_structure.py`) use `FakeProtocolClient` where HTTP would otherwise be required. They do not read `SUPERDOCS_API_KEY` and must not call the live API.
+Offline Phase 7A orchestration tests (`tests/test_live_orchestration.py`, `tests/test_export_selection.py`, `tests/test_live_review_resume.py`, `tests/test_live_profile_baseline.py`, `tests/test_profile_structure.py`) use `FakeProtocolClient` where HTTP would otherwise be required. They do not read `SUPERDOCS_API_KEY` and must not call the live API.
 
 
 
@@ -218,7 +218,7 @@ Offline Phase 7A orchestration tests (`tests/test_live_orchestration.py`, `tests
 
 \- existing processing/completed search resumes without another POST — implemented
 
-\- export — implemented
+\- export — implemented (`render_framework_html` / `render_profile_html`; documented HTML export body; unknown kind fails before HTTP)
 
 \- failed live step preserves resumable state — implemented
 
@@ -230,7 +230,7 @@ Offline Phase 7A orchestration tests (`tests/test_live_orchestration.py`, `tests
 
 
 
-Human live run: upload of four JD documents succeeded; templates passed; framework and profile live jobs were approved. The SuperDocs profile fill duplicated Level expectations; in-place repair was approved. Surgical attempt 1 was rejected (unrelated Complexity rewrite). Attempt 2 was rejected (duplicated baseline). Attempt 3 was approved (version + Scope only). Exported profile structure and preservation checks passed. Search was resumed on the same job id (no second POST) and reached `completed` with `verified=true`, `terminal=true`, and `has_result=true`.
+Human live run: upload of four JD documents succeeded; templates passed; framework and profile live jobs were approved. The SuperDocs profile fill duplicated Level expectations; in-place repair was approved. Surgical attempt 1 was rejected (unrelated Complexity rewrite). Attempt 2 was rejected (duplicated baseline). Attempt 3 was approved (version + Scope only). Exported profile structure and preservation checks passed. Search was resumed on the same job id (no second POST) and reached `completed` with `verified=true`, `terminal=true`, and `has_result=true`. Framework export attempts 1–2 HTTP-succeeded but returned a source JD. Attempt 3 used documented HTML + `session_id` (15,650 chars); semantic verification passed (`verify-framework-structure` `semantic ok=True`). Framework reviewed edit is proven.
 
 
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../api";
+import { PageHeader } from "../components/PageHeader";
 import { Empty, ErrorBanner, Loading } from "../components/Status";
 import { useCorpus } from "../corpus";
 import type { ProfileSummary, SuperDocsStatus } from "../types";
@@ -22,7 +23,7 @@ export function ExportPage() {
       try {
         const superdocs = await api.superdocs();
         if (!cancelled) setStatus(superdocs);
-        if (analyzed) {
+        if (analyzed && corpusId) {
           const payload = await api.profiles(corpusId);
           if (!cancelled) {
             setProfiles(payload.profiles);
@@ -63,23 +64,30 @@ export function ExportPage() {
 
   return (
     <section>
-      <h1>Export</h1>
-      <p>Local DOCX export writes a real file. SuperDocs live export is not performed from this screen.</p>
+      <PageHeader title="Export">
+        Local DOCX export writes a real file. SuperDocs live export is not performed from this screen.
+      </PageHeader>
       {error ? <ErrorBanner message={error} /> : null}
       {!analyzed ? <Empty>Analyze the corpus before exporting framework or profiles.</Empty> : null}
       <div className="grid-2">
-        <article className="card">
+        <article className="card artifact-card">
           <h2>Framework</h2>
-          <button
-            type="button"
-            className="primary"
-            disabled={!analyzed}
-            onClick={() => void exportKind("framework")}
-          >
-            Export framework
-          </button>
+          <p>Canonical levels, tracks, families, and competency matrices.</p>
+          <span className={`chip ${analyzed ? "good" : "warn"}`}>
+            {analyzed ? "available" : "analyze first"}
+          </span>
+          <div className="actions">
+            <button
+              type="button"
+              className="primary"
+              disabled={!analyzed}
+              onClick={() => void exportKind("framework")}
+            >
+              Export framework
+            </button>
+          </div>
         </article>
-        <article className="card">
+        <article className="card artifact-card">
           <h2>Selected role profile</h2>
           {profiles.length === 0 ? (
             <Empty>No profile available to export.</Empty>
@@ -99,14 +107,19 @@ export function ExportPage() {
                   ))}
                 </select>
               </label>
-              <button
-                type="button"
-                className="primary"
-                disabled={!analyzed || !profileId}
-                onClick={() => void exportKind("profile")}
-              >
-                Export selected profile
-              </button>
+              <span className={`chip ${analyzed && profileId ? "good" : "warn"}`}>
+                {analyzed && profileId ? "available" : "unavailable"}
+              </span>
+              <div className="actions">
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={!analyzed || !profileId}
+                  onClick={() => void exportKind("profile")}
+                >
+                  Export selected profile
+                </button>
+              </div>
             </>
           )}
         </article>
@@ -117,15 +130,17 @@ export function ExportPage() {
           <a href={downloadHref}>Download generated DOCX</a>
         </p>
       ) : null}
-      <article className="card" style={{ marginTop: "1rem" }}>
+      <article className="card artifact-card" style={{ marginTop: "1rem" }}>
         <h2>SuperDocs live export</h2>
         <span className={`chip ${status.configured ? "good" : "warn"}`}>
           {status.configured ? "configured" : "not configured"}
         </span>
         <p>{status.live_export_reason}</p>
-        <button type="button" className="ghost" disabled>
-          Live SuperDocs export unavailable
-        </button>
+        <div className="actions">
+          <button type="button" className="ghost" disabled>
+            Live SuperDocs export unavailable
+          </button>
+        </div>
       </article>
     </section>
   );

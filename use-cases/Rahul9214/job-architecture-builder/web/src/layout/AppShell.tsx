@@ -34,7 +34,7 @@ export function AppShell() {
       </aside>
       <div className="workspace">
         <header className="topbar">
-          <div>
+          <div className="corpus-context">
             <label htmlFor="corpus">
               Organization
               <select
@@ -49,6 +49,11 @@ export function AppShell() {
                 ))}
               </select>
             </label>
+            <p className="corpus-meta">
+              {current
+                ? `${current.role_count} source roles · titles never determine level`
+                : "Select a corpus to begin."}
+            </p>
           </div>
           <div className="actions">
             <span className={`chip ${analyzed ? "good" : "warn"}`}>
@@ -60,17 +65,14 @@ export function AppShell() {
           </div>
         </header>
         <main className="content">
-          <p>
-            {current
-              ? `${current.organization} · ${current.role_count} source roles. Titles never determine level.`
-              : "Select a corpus to begin."}
-          </p>
           {error ? (
             <div className="error" role="alert">
               {error}
             </div>
           ) : null}
-          <Outlet />
+          <div className="page">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

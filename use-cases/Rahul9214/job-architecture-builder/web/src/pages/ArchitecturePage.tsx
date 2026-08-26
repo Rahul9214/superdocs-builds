@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../api";
 import { RoleDrawer } from "../components/RoleDrawer";
+import { MetricsRow } from "../components/Metric";
+import { PageHeader } from "../components/PageHeader";
 import { Empty, ErrorBanner, FitChip, Loading } from "../components/Status";
 import { useCorpus } from "../corpus";
 import type { ArchitectureSummary, RoleDetail } from "../types";
@@ -44,15 +46,11 @@ export function ArchitecturePage() {
 
   return (
     <section>
-      <h1>Architecture</h1>
-      <div className="metrics">
-        {Object.entries(summary.metrics).map(([key, value]) => (
-          <div className="metric" key={key}>
-            <strong>{value}</strong>
-              <span>{key.replace(/_/g, " ")}</span>
-          </div>
-        ))}
-      </div>
+      <PageHeader kicker={summary.organization} title="Architecture">
+        Clusters are evidence neighborhoods. Title wording is shown only when it conflicts with the
+        evidence-based track or level.
+      </PageHeader>
+      <MetricsRow metrics={summary.metrics} />
       {summary.title_conflicts.length > 0 ? (
         <div className="title-vs-evidence">
           <h2>Title vs evidence</h2>
@@ -62,7 +60,7 @@ export function ArchitecturePage() {
           </p>
           <div className="grid-2">
             {summary.title_conflicts.map((item) => (
-              <article className="card" key={item.role_id}>
+              <article className="card conflict-card" key={item.role_id}>
                 <h3>{item.title}</h3>
                 <FitChip status={item.fit_status} />
                 <p>
@@ -75,9 +73,11 @@ export function ArchitecturePage() {
                   <strong>Why it differs.</strong> {item.title_conflict.summary} The title was not used to
                   classify the role.
                 </p>
-                <button type="button" className="ghost" onClick={() => void openRole(item.role_id)}>
-                  Open evidence
-                </button>
+                <div className="actions">
+                  <button type="button" className="ghost" onClick={() => void openRole(item.role_id)}>
+                    Open evidence
+                  </button>
+                </div>
               </article>
             ))}
           </div>
@@ -86,13 +86,13 @@ export function ArchitecturePage() {
       <h2>Craft neighborhoods</h2>
       {summary.clusters.map((cluster) => (
         <article className="card" key={cluster.cluster_id} style={{ marginBottom: "0.75rem" }}>
-          <h3>
-            {cluster.proposed_family ?? "Unlabeled cluster"}{" "}
+          <div className="cluster-head">
+            <h3>{cluster.proposed_family ?? "Unlabeled cluster"}</h3>
             <span className="chip">cohesion {cluster.cohesion.toFixed(2)}</span>
             {cluster.separation != null ? (
               <span className="chip">separation {cluster.separation.toFixed(2)}</span>
             ) : null}
-          </h3>
+          </div>
           {cluster.nearest_cluster_id ? (
             <p>
               Nearest cluster {cluster.nearest_cluster_id}
@@ -101,7 +101,7 @@ export function ArchitecturePage() {
                 : ""}
             </p>
           ) : null}
-          <ul>
+          <ul className="member-list">
             {cluster.members.map((member) => (
               <li key={member.role_id}>
                 <button type="button" className="row-btn" onClick={() => void openRole(member.role_id)}>

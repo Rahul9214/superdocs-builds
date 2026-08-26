@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import re
 import zipfile
 import xml.etree.ElementTree as ElementTree
 from dataclasses import dataclass
+from html import unescape
 from pathlib import Path
 from typing import Mapping
 
@@ -42,6 +44,43 @@ class ExportPreservationCheck:
     @property
     def ok(self) -> bool:
         return self.found_new_fragment and not self.missing_markers
+
+
+@dataclass(frozen=True)
+class FrameworkExportCheck:
+    found_markers: tuple[str, ...]
+    missing_markers: tuple[str, ...]
+    looks_like_source_jd: bool
+    excerpt: str
+
+    @property
+    def ok(self) -> bool:
+        return not self.missing_markers and not self.looks_like_source_jd
+
+
+def _heading(name: str) -> re.Pattern[str]:
+    return re.compile(rf"(?im)^(?:#+\s*)?{name}\b")
+
+
+def _word(label: str) -> re.Pattern[str]:
+    return re.compile(rf"(?<![A-Za-z0-9]){re.escape(label)}(?![A-Za-z0-9])")
+
+
+FRAMEWORK_EXPORT_MARKERS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("purpose", _heading("purpose")),
+    ("principles", _heading("principles")),
+    ("individual_contributor_track", re.compile(r"individual\s+contributor", re.I)),
+    ("people_manager_track", re.compile(r"people\s+manager", re.I)),
+    ("IC1", _word("IC1")),
+    ("IC2", _word("IC2")),
+    ("IC3", _word("IC3")),
+    ("IC4", _word("IC4")),
+    ("IC5", _word("IC5")),
+    ("M1", _word("M1")),
+    ("M2", _word("M2")),
+    ("M3", _word("M3")),
+    ("job_family", re.compile(r"job\s+famil(?:y|ies)", re.I)),
+)
 
 
 def extract_docx_text(path: Path) -> str:
@@ -130,3 +169,46 @@ def verify_exported_profile(
         missing_markers=missing,
         excerpt=text[:2000],
     )
+
+
+def visible_export_text(value: str) -> str:
+    """Normalize HTML or plain text so heading/label checks share one path."""
+    if "<" not in value or ">" not in value:
+        return value
+    text = re.sub(r"(?i)<br\s*/?>", "\n", value)
+    text = re.sub(r"(?i)<h[1-6][^>]*>", "\n", text)
+    text = re.sub(r"(?i)</h[1-6]>", "\n", text)
+    text = re.sub(r"(?i)</(p|li|tr|div)>", "\n", text)
+    text = re.sub(r"<[^>]+>", " ", text)
+    return unescape(text)
+
+
+def verify_framework_content(text: str) -> FrameworkExportCheck:
+    """Semantic check on rendered framework HTML or extracted DOCX text."""
+    visible = visible_export_text(text)
+    found: list[str] = []
+    missing: list[str] = []
+    for name, pattern in FRAMEWORK_EXPORT_MARKERS:
+        if pattern.search(visible):
+            found.append(name)
+        else:
+            missing.append(name)
+    lowered = visible.lower()
+    looks_like_jd = "role purpose" in lowered or lowered.lstrip().startswith(
+        "software engineer"
+    )
+    return FrameworkExportCheck(
+        found_markers=tuple(found),
+        missing_markers=tuple(missing),
+        looks_like_source_jd=looks_like_jd,
+        excerpt=visible[:2000],
+    )
+
+
+def verify_exported_framework(path: Path) -> FrameworkExportCheck:
+    """Semantic check that a DOCX is a job-architecture framework, not a source JD.
+
+    File existence is not success. Byte identity is not required. An ordinary
+    job description (for example a Software Engineer Backend JD) must fail.
+    """
+    return verify_framework_content(extract_docx_text(path))

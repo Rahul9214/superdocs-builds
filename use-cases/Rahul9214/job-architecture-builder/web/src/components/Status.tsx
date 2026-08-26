@@ -19,6 +19,7 @@ export function ErrorBanner({ message }: { message: string }) {
 }
 
 export function FitChip({ status }: { status: string }) {
-  const tone = status === "strong_fit" ? "good" : status === "misfit" ? "accent" : "warn";
+  const tone =
+    status === "strong_fit" ? "good" : status === "misfit" ? "misfit" : status === "provisional" ? "warn" : "neutral";
   return <span className={`chip ${tone}`}>{status.replace(/_/g, " ")}</span>;
 }

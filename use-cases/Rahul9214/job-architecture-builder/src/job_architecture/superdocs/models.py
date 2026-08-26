@@ -3,16 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import Any, Mapping
 
-
-class RetryClass(str, Enum):
-    """What this adapter will do after a failed call."""
-
-    SAFE = "safe_retry"
-    UNSAFE = "unsafe_no_blind_retry"
-    COMPLETED = "already_completed"
+from job_architecture.superdocs.errors import ExportError
 
 
 @dataclass(frozen=True)
@@ -157,6 +150,59 @@ class ExportResult:
     byte_count: int
     destination: str | None = None
     operation_key: str | None = None
+
+
+DOCUMENTED_EXPORT_BODY_KEYS = frozenset(
+    {"html", "session_id", "upload_id", "format", "options", "filename"}
+)
+DOCUMENTED_EXPORT_FORMATS = frozenset({"docx", "pdf", "html", "markdown", "txt", "doc"})
+
+
+@dataclass(frozen=True)
+class ExportRequest:
+    """POST /v1/documents/export body from current SuperDocs docs (llms-full.txt).
+
+    Documented fields: html, session_id, upload_id, format, options, filename.
+    The API requires one of html / session_id / upload_id. Session-only export
+    returns the session's current/default document. This integration always
+    sends non-empty html so the artifact is deterministic. document_id and
+    durable_document_id are not documented on this endpoint.
+    """
+
+    session_id: str
+    html: str
+    format: str = "docx"
+    filename: str | None = None
+
+    def __post_init__(self) -> None:
+        session_id = self.session_id.strip() if isinstance(self.session_id, str) else ""
+        html = self.html.strip() if isinstance(self.html, str) else ""
+        fmt = (self.format or "docx").strip()
+        filename = self.filename.strip() if isinstance(self.filename, str) and self.filename.strip() else None
+        object.__setattr__(self, "session_id", session_id)
+        object.__setattr__(self, "html", html)
+        object.__setattr__(self, "format", fmt)
+        object.__setattr__(self, "filename", filename)
+        if not html:
+            raise ExportError("Export HTML is empty; refusing SuperDocs call")
+        if not session_id:
+            raise ExportError("Export requires session_id")
+        if fmt not in DOCUMENTED_EXPORT_FORMATS:
+            raise ExportError(f"Unsupported export format {fmt!r}")
+
+    def json_body(self) -> dict[str, Any]:
+        body: dict[str, Any] = {
+            "html": self.html,
+            "session_id": self.session_id,
+            "format": self.format,
+        }
+        if self.filename:
+            body["filename"] = self.filename
+            body["options"] = {"filename": self.filename}
+        extra = set(body) - DOCUMENTED_EXPORT_BODY_KEYS
+        if extra:
+            raise ExportError(f"Refusing undocumented export fields: {sorted(extra)}")
+        return body
 
 
 @dataclass(frozen=True)

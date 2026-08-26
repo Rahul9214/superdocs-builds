@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any, Mapping
+from typing import Any
 
 from job_architecture.models import PROFILE_SECTION_IDS, RoleProfile
 
@@ -24,7 +24,3 @@ def hash_section(profile: RoleProfile, section_id: str) -> str:
 
 def hash_all_sections(profile: RoleProfile) -> dict[str, str]:
     return {section_id: hash_section(profile, section_id) for section_id in PROFILE_SECTION_IDS}
-
-
-def profile_hash_map(profiles: Mapping[str, RoleProfile]) -> dict[str, dict[str, str]]:
-    return {profile_id: hash_all_sections(profile) for profile_id, profile in profiles.items()}

@@ -6,7 +6,7 @@ validates constrained fields. No SuperDocs client or API key is required.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Mapping
 
@@ -922,7 +922,3 @@ def round_trip(model: Any) -> Any:
     if not hasattr(model, "to_dict") or not hasattr(model.__class__, "from_dict"):
         raise TypeError(f"{type(model).__name__} is not a serializable domain model")
     return model.__class__.from_dict(model.to_dict())
-
-
-def model_field_names(model_cls: type[Any]) -> tuple[str, ...]:
-    return tuple(item.name for item in fields(model_cls))

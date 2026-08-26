@@ -15,10 +15,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from html import escape
+
 from job_architecture.superdocs.client import SuperDocsClient
 from job_architecture.superdocs.config import load_settings
 from job_architecture.superdocs.errors import ConfigurationError, JobFailedError, JobTimeoutError
-from job_architecture.superdocs.models import ReviewDecision
+from job_architecture.superdocs.models import ExportRequest, ReviewDecision
 
 FIXTURE = ROOT / "fixtures" / "superdocs" / "smoke-role.md"
 
@@ -100,7 +102,15 @@ def main(argv: list[str] | None = None) -> int:
         if args.export is None:
             print(f"done status={snapshot.status}; pass --export PATH to download bytes")
             return 0
-        exported = client.export_document(args.export, session_id=args.session_id, format="docx")
+        exported = client.export_document(
+            args.export,
+            ExportRequest(
+                session_id=args.session_id,
+                html=f"<h1>Smoke role</h1><pre>{escape(FIXTURE.read_text(encoding='utf-8'))}</pre>",
+                format="docx",
+                filename=args.export.name,
+            ),
+        )
         print(f"exported {exported.byte_count} bytes to {exported.destination}")
         return 0
 

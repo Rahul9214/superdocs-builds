@@ -1,19 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "../api";
+import { BeforeAfter } from "../components/BeforeAfter";
+import { Metric } from "../components/Metric";
+import { PageHeader } from "../components/PageHeader";
 import { Empty, ErrorBanner, Loading } from "../components/Status";
 import { useCorpus } from "../corpus";
+import { dimensionLabel } from "../labels";
 import type { FrameworkPayload, ImpactPayload, UpdatePlanView } from "../types";
-
-const DIMENSION_LABELS: Record<string, string> = {
-  scope: "Scope",
-  autonomy: "Autonomy",
-  decision_authority: "Decision authority",
-  complexity: "Complexity",
-  impact: "Impact",
-  leadership: "Leadership",
-  people_management: "People management",
-};
 
 export function ImpactPage() {
   const { corpusId, analyzed } = useCorpus();
@@ -100,81 +94,74 @@ export function ImpactPage() {
 
   return (
     <section>
-      <h1>Change impact</h1>
-      <p>
+      <PageHeader kicker="Canonical change" title="Change impact">
         Edit one canonical dimension. Impact analysis and update planning run against the live domain
         engine. Nothing is applied until human review.
-      </p>
+      </PageHeader>
       {error ? <ErrorBanner message={error} /> : null}
-      <div className="grid-2">
-        <label htmlFor="level">
-          Occupied level
-          <select id="level" value={levelId} onChange={(event) => setLevelId(event.target.value)}>
-            {framework.levels.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label} v{item.version}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label htmlFor="dimension">
-          Canonical dimension
-          <select
-            id="dimension"
-            value={dimension}
-            onChange={(event) => setDimension(event.target.value)}
-          >
-            {dimensions.map((item) => (
-              <option key={item} value={item}>
-                {DIMENSION_LABELS[item] ?? item.replace(/_/g, " ")}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <div className="before-after" style={{ marginTop: "1rem" }}>
-        <article className="card">
-          <h2>OLD</h2>
-          <p>Current {DIMENSION_LABELS[dimension] ?? dimension} value.</p>
-          <pre className="mono">{oldValue || "—"}</pre>
-        </article>
-        <article className="card">
-          <h2>NEW</h2>
-          <label htmlFor="proposed">
-            Proposed value
-            <textarea
-              id="proposed"
-              rows={6}
-              value={value}
-              onChange={(event) => setValue(event.target.value)}
-            />
+      <article className="card">
+        <div className="grid-2">
+          <label htmlFor="level">
+            Occupied level
+            <select id="level" value={levelId} onChange={(event) => setLevelId(event.target.value)}>
+              {framework.levels.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label} v{item.version}
+                </option>
+              ))}
+            </select>
           </label>
-        </article>
-      </div>
-      <div className="actions" style={{ margin: "1rem 0" }}>
-        <button type="button" className="ghost" onClick={() => void runImpact()} disabled={busy}>
-          Analyze impact
-        </button>
-        <button type="button" className="primary" onClick={() => void runPlan()} disabled={busy}>
-          Plan targeted updates
-        </button>
-      </div>
+          <label htmlFor="dimension">
+            Canonical dimension
+            <select
+              id="dimension"
+              value={dimension}
+              onChange={(event) => setDimension(event.target.value)}
+            >
+              {dimensions.map((item) => (
+                <option key={item} value={item}>
+                  {dimensionLabel(item)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="impact-hero">
+          <article className="card">
+            <h2>OLD</h2>
+            <p>Current {dimensionLabel(dimension)} value.</p>
+            <pre className="mono">{oldValue || "—"}</pre>
+          </article>
+          <article className="card">
+            <h2>NEW</h2>
+            <label htmlFor="proposed">
+              Proposed value
+              <textarea
+                id="proposed"
+                rows={6}
+                value={value}
+                onChange={(event) => setValue(event.target.value)}
+              />
+            </label>
+          </article>
+        </div>
+        <div className="actions">
+          <button type="button" className="ghost" onClick={() => void runImpact()} disabled={busy}>
+            Analyze impact
+          </button>
+          <button type="button" className="primary" onClick={() => void runPlan()} disabled={busy}>
+            Plan targeted updates
+          </button>
+        </div>
+      </article>
       {impact ? (
         <>
           <div className="metrics">
-            <div className="metric">
-              <strong>{impact.affected_profiles_count}</strong>
-              <span>affected profiles</span>
-            </div>
-            <div className="metric">
-              <strong>{impact.unaffected_profiles_count}</strong>
-              <span>unaffected profiles</span>
-            </div>
-            <div className="metric">
-              <strong>{impact.changed_dimensions.join(", ") || "none"}</strong>
-              <span>canonical dimensions changed</span>
-            </div>
+            <Metric value={impact.affected_profiles_count} label="affected profiles" />
+            <Metric value={impact.unaffected_profiles_count} label="unaffected profiles" />
+            <Metric value={impact.changed_dimensions.join(", ") || "none"} label="canonical dimensions changed" />
           </div>
+          {impact.reason ? <p>{impact.reason}</p> : null}
           {impact.affected_profiles_count === 0 ? (
             <Empty>No affected profiles for this edit.</Empty>
           ) : (
@@ -205,16 +192,7 @@ export function ImpactPage() {
                 <p>
                   Dependency {plan.dependency.id} · source v{plan.dependency.source_version}
                 </p>
-                <div className="before-after">
-                  <div>
-                    <strong>Before</strong>
-                    <pre className="mono">{plan.before}</pre>
-                  </div>
-                  <div>
-                    <strong>After</strong>
-                    <pre className="mono">{plan.after}</pre>
-                  </div>
-                </div>
+                <BeforeAfter before={plan.before} after={plan.after} />
                 <p>
                   Unrelated sections preserved: {plan.preserved_rendered_fields.join(", ") || "none listed"}
                 </p>

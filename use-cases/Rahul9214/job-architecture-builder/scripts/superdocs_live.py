@@ -23,7 +23,7 @@ from job_architecture.live.domain_apply import (
     record_structure_verification,
 )
 from job_architecture.live.orchestrator import LiveIntent, LiveOrchestrator, prepare_demo_artifacts
-from job_architecture.live.preservation import inspect_docx_layout, verify_exported_profile
+from job_architecture.live.preservation import inspect_docx_layout, verify_exported_framework, verify_exported_profile
 from job_architecture.profile_structure import validate_profile_document_text
 from job_architecture.live.review import format_pending
 from job_architecture.live.state import RuntimeStore
@@ -58,6 +58,7 @@ def main(argv: list[str] | None = None) -> int:
             "export",
             "verify-export",
             "verify-profile-structure",
+            "verify-framework-structure",
             "finalize-domain",
             "annotate-review",
         ),
@@ -99,6 +100,7 @@ def main(argv: list[str] | None = None) -> int:
         "status",
         "verify-export",
         "verify-profile-structure",
+        "verify-framework-structure",
         "finalize-domain",
         "annotate-review",
     }:
@@ -163,9 +165,15 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "export":
             kind = args.kind
             destination = args.path or (DEFAULT_EXPORTS / f"{kind}.docx")
+            try:
+                intent = orchestrator.export_intent(kind)
+            except SuperDocsError as exc:
+                print(exc, file=sys.stderr)
+                print("No SuperDocs call was made.")
+                return 1
             return _run_mutating(
                 args,
-                orchestrator.export_intent(kind),
+                intent,
                 lambda: _do_export(orchestrator, kind, destination),
             )
     print(f"Unknown command {args.command}", file=sys.stderr)
@@ -304,6 +312,23 @@ def _local_command(args, store: RuntimeStore) -> int:
             print("Structure is invalid. Not marking the live baseline verified.")
         print("Local structure check only. No SuperDocs call.")
         return 0 if report.ok else 1
+    if args.command == "verify-framework-structure":
+        path = args.path or (DEFAULT_EXPORTS / "framework.docx")
+        if not path.is_file():
+            print(f"File not found: {path}", file=sys.stderr)
+            return 2
+        check = verify_exported_framework(path)
+        print(f"path: {path}")
+        print(f"semantic ok: {check.ok}")
+        print(f"found: {', '.join(check.found_markers) or '(none)'}")
+        print(f"missing: {', '.join(check.missing_markers) or '(none)'}")
+        print(f"looks_like_source_jd: {check.looks_like_source_jd}")
+        print("excerpt:")
+        print(check.excerpt[:500])
+        print("File existence is not success. Local check only. No SuperDocs call.")
+        if not check.ok:
+            print("Framework export is NOT VERIFIED.")
+        return 0 if check.ok else 1
     if args.command == "finalize-domain":
         state = load_and_prepare(store)
         if state is None:
@@ -505,6 +530,17 @@ def _do_export(orchestrator: LiveOrchestrator, kind: str, destination: Path) -> 
     path = orchestrator.export(kind, destination)
     print(f"exported {kind} to {path}")
     print("Compare extracted text, not DOCX package metadata bytes.")
+    if kind != "framework":
+        return 0
+    check = verify_exported_framework(path)
+    print(f"semantic framework verification: {'PASS' if check.ok else 'FAIL'}")
+    print(f"found: {', '.join(check.found_markers) or '(none)'}")
+    print(f"missing: {', '.join(check.missing_markers) or '(none)'}")
+    print(f"looks_like_source_jd: {check.looks_like_source_jd}")
+    print("File existence is not success.")
+    if not check.ok:
+        print("Framework export is NOT VERIFIED. The HTTP response may still be a wrong document.")
+        return 1
     return 0
 
 

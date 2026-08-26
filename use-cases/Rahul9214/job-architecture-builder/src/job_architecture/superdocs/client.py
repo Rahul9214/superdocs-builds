@@ -24,6 +24,8 @@ from job_architecture.superdocs.models import (
     ApprovalResult,
     AsyncJobHandle,
     DocumentRef,
+    DOCUMENTED_EXPORT_BODY_KEYS,
+    ExportRequest,
     ExportResult,
     JobSnapshot,
     ReviewDecision,
@@ -75,6 +77,7 @@ class SuperDocsClient:
 
     @classmethod
     def from_env(cls, **kwargs) -> SuperDocsClient:
+        """Public constructor from environment settings. The live CLI loads settings explicitly."""
         return cls(load_settings(), **kwargs)
 
     def close(self) -> None:
@@ -517,25 +520,27 @@ class SuperDocsClient:
     def export_document(
         self,
         destination: Path | BinaryIO,
+        request: ExportRequest,
         *,
-        session_id: str | None = None,
-        html: str | None = None,
-        format: str = "docx",
-        filename: str | None = None,
         operation_key: str | None = None,
     ) -> ExportResult:
         cached = self._cached(operation_key)
         if isinstance(cached, ExportResult):
             return cached
-        if not session_id and html is None:
-            raise ExportError("Export requires session_id or html")
-        body: dict[str, Any] = {"format": format}
-        if session_id:
-            body["session_id"] = session_id
-        if html is not None:
-            body["html"] = html
-        if filename:
-            body["options"] = {"filename": filename}
+        body = request.json_body()
+        extra = set(body) - DOCUMENTED_EXPORT_BODY_KEYS
+        if extra:
+            raise ExportError(f"Refusing undocumented export fields: {sorted(extra)}")
+        if "document_id" in body or "durable_document_id" in body:
+            raise ExportError(
+                "Export must not send document_id or durable_document_id; "
+                "current SuperDocs docs do not support id targeting on export"
+            )
+        html = str(body.get("html") or "").strip()
+        if not html:
+            raise ExportError("Export HTML is empty; refusing SuperDocs call")
+        if not body.get("session_id"):
+            raise ExportError("Export requires session_id")
         url = self._url("/v1/documents/export")
         headers = self._auth_headers()
         headers["Content-Type"] = "application/json"
@@ -560,7 +565,7 @@ class SuperDocsClient:
                         "Export returned JSON instead of a file; not treating as success",
                         cause=redact_secrets(text, self.settings.api_key),
                     )
-                target_name = filename or f"export.{format}"
+                target_name = request.filename or f"export.{request.format}"
                 received = 0
                 if isinstance(destination, (str, Path)):
                     path = Path(destination)

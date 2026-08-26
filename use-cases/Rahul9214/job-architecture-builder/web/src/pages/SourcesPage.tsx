@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, ApiError } from "../api";
 import { useCorpus } from "../corpus";
 import type { CorpusSummary } from "../types";
+import { PageHeader } from "../components/PageHeader";
 import { Empty, ErrorBanner, Loading } from "../components/Status";
 
 export function SourcesPage() {
@@ -10,7 +11,9 @@ export function SourcesPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!corpusId) return;
     let cancelled = false;
+    setError(null);
     api
       .corpus(corpusId)
       .then((payload) => {
@@ -29,11 +32,9 @@ export function SourcesPage() {
 
   return (
     <section>
-      <h1>Sources</h1>
-      <p>
-        {corpus.organization}. {corpus.role_count} job descriptions. Analysis state:{" "}
-        {corpus.analyzed ? "analyzed" : "not analyzed"}.
-      </p>
+      <PageHeader kicker={corpus.organization} title="Sources">
+        {corpus.role_count} job descriptions. Analysis state: {corpus.analyzed ? "analyzed" : "not analyzed"}.
+      </PageHeader>
       {corpus.roles.length === 0 ? (
         <Empty>No source roles in this corpus.</Empty>
       ) : (

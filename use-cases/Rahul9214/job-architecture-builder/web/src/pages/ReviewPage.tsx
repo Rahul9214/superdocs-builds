@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../api";
+import { BeforeAfter } from "../components/BeforeAfter";
+import { Metric } from "../components/Metric";
+import { PageHeader } from "../components/PageHeader";
 import { Empty, ErrorBanner, Loading } from "../components/Status";
 import { useCorpus } from "../corpus";
 import type { ReviewPayload } from "../types";
@@ -60,25 +63,19 @@ export function ReviewPage() {
 
   return (
     <section>
-      <h1>Human review</h1>
-      <p>Each proposal needs an explicit approve or reject. Rejected updates remain unapplied.</p>
+      <PageHeader title="Human review">
+        Each proposal needs an explicit approve or reject. Rejected updates remain unapplied. Apply is a
+        separate step after decisions are recorded.
+      </PageHeader>
       {error ? <ErrorBanner message={error} /> : null}
-      <div className="metrics">
-        <div className="metric">
-          <strong>{review.remote_operation}</strong>
-          <span>remote operation</span>
+      <div className="state-pair">
+        <div className="metrics">
+          <Metric value={review.review_outcome} label="review outcome" />
+          <Metric value={review.remote_operation} label="remote operation" />
         </div>
-        <div className="metric">
-          <strong>{review.review_outcome}</strong>
-          <span>review outcome</span>
-        </div>
-        <div className="metric">
-          <strong>{review.mutation_applied ? "yes" : "no"}</strong>
-          <span>mutation applied</span>
-        </div>
-        <div className="metric">
-          <strong>{review.domain_applied ? "yes" : "no"}</strong>
-          <span>domain applied</span>
+        <div className="metrics">
+          <Metric value={review.mutation_applied ? "yes" : "no"} label="mutation applied" />
+          <Metric value={review.domain_applied ? "yes" : "no"} label="domain applied" />
         </div>
       </div>
       <div className="stack">
@@ -91,16 +88,7 @@ export function ReviewPage() {
             <p>
               Dependency {plan.dependency.id} · source v{plan.dependency.source_version}
             </p>
-            <div className="before-after">
-              <div>
-                <strong>Before</strong>
-                <pre className="mono">{plan.before}</pre>
-              </div>
-              <div>
-                <strong>After</strong>
-                <pre className="mono">{plan.after}</pre>
-              </div>
-            </div>
+            <BeforeAfter before={plan.before} after={plan.after} />
             <p>
               Decision:{" "}
               {plan.decision === true ? "approved" : plan.decision === false ? "rejected" : "undecided"}

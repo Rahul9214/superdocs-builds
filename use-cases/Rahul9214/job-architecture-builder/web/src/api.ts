@@ -37,13 +37,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  health: () => request<{ ok: boolean }>("/api/health"),
   corpora: () => request<{ corpora: CorpusSummary[] }>("/api/corpora"),
   corpus: (id: string) => request<CorpusSummary>(`/api/corpora/${id}`),
   analyze: (id: string) =>
     request<ArchitectureSummary>(`/api/corpora/${id}/analyze`, { method: "POST" }),
   architecture: (id: string) => request<ArchitectureSummary>(`/api/architecture/${id}`),
-  roles: (id: string) => request<{ roles: RoleDetail[] }>(`/api/architecture/${id}/roles`),
   role: (id: string, roleId: string) => request<RoleDetail>(`/api/architecture/${id}/roles/${roleId}`),
   exceptions: (id: string) =>
     request<{ provisional: ExceptionCard[]; hybrid_bridge: ExceptionCard[]; misfit: ExceptionCard[] }>(

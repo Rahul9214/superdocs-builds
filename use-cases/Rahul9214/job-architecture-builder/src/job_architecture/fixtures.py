@@ -230,10 +230,6 @@ class LoadedCorpus:
         raise KeyError(role_id)
 
 
-def corpus_dir(corpus_id: str) -> Path:
-    return FIXTURES_ROOT / corpus_id
-
-
 def load_json(path: Path) -> Any:
     with path.open(encoding="utf-8") as handle:
         return json.load(handle)

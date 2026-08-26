@@ -19,7 +19,6 @@ from job_architecture.catalog import (
     COMPILED_SCOPE_LOW,
     COMPILED_SCOPE_MID,
     LEVEL_BY_LABEL,
-    LEVEL_DEFINITIONS,
     MANAGEMENT_M2_MIN,
     MANAGEMENT_M3_MIN,
 )
@@ -197,13 +196,3 @@ def infer_level(evidence: RoleEvidence, track: TrackInference) -> LevelInference
         supporting=tuple(supporting),
         counter=tuple(counter),
     )
-
-
-def ic_rank(label: str | None) -> int | None:
-    if label is None or label not in LEVEL_BY_LABEL:
-        return None
-    return LEVEL_BY_LABEL[label].rank
-
-
-def canonical_levels() -> tuple:
-    return LEVEL_DEFINITIONS

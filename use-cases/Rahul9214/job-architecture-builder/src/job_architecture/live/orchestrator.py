@@ -40,6 +40,7 @@ from job_architecture.live.job_state import (
 )
 from job_architecture.live.preservation import inspect_docx_layout, verify_exported_profile
 from job_architecture.live.roster import reconcile_documents_from_roster
+from job_architecture.live.selection import build_export_request, documents_with_kind
 from job_architecture.live.state import LiveState, RuntimeStore
 from job_architecture.live.subset import DemoSubset, build_demo_framework, load_demo_subset
 from job_architecture.profile_structure import validate_level_expectations_block, validate_profile_document_text
@@ -198,15 +199,6 @@ class LiveOrchestrator:
             state.last_error = f"{type(exc).__name__}: {_safe_error(exc)}"
             self._save(state)
             raise
-
-    def templates_intent(self) -> LiveIntent:
-        needed = [name for name in TEMPLATE_FILES if name not in self.state().templates]
-        return LiveIntent(
-            action="templates",
-            summary=f"Upload or reuse {len(needed)} DOCX templates.",
-            mutating_calls=tuple(f"POST /v1/templates/upload-base64 ({name})" for name in needed),
-            estimated_count=len(needed),
-        )
 
     def upload_templates(self) -> dict[str, str]:
         self.prepare()
@@ -755,24 +747,38 @@ class LiveOrchestrator:
             raise
 
     def export_intent(self, kind: str) -> LiveIntent:
+        request = build_export_request(
+            kind,
+            session_id=self.subset.session_id,
+            filename=f"{kind}.docx",
+            framework=self.framework,
+            subset=self.subset,
+        )
         return LiveIntent(
             action="export",
-            summary=f"Export the {kind} document as DOCX.",
+            summary=(
+                f"Export the {kind} artifact as DOCX by POSTing documented "
+                f"html + session_id to /v1/documents/export "
+                f"({len(request.html)} chars of HTML). SuperDocs is not asked "
+                "to infer architecture or pick a session document by id."
+            ),
             mutating_calls=("POST /v1/documents/export",),
             estimated_count=1,
         )
 
     def export(self, kind: str, destination: Path) -> Path:
         state = self.state()
-        doc = state.document_for(kind)
-        if doc is None:
-            raise SuperDocsError(f"No saved {kind} document to export")
+        request = build_export_request(
+            kind,
+            session_id=self.subset.session_id,
+            filename=destination.name,
+            framework=self.framework,
+            subset=self.subset,
+        )
         try:
             self.client.export_document(
                 destination,
-                session_id=self.subset.session_id,
-                format="docx",
-                filename=destination.name,
+                request,
                 operation_key=f"live-export:{kind}",
             )
             state.remember_operation(f"live-export:{kind}")
@@ -793,9 +799,14 @@ class LiveOrchestrator:
         filename: str,
         operation_key: str,
     ) -> dict:
-        existing = state.document_for(kind)
-        if existing is not None:
-            return existing
+        matches = documents_with_kind(state, kind)
+        if len(matches) > 1:
+            raise SuperDocsError(
+                f"Ambiguous {kind} document: {len(matches)} saved records match "
+                f"kind={kind!r}; refusing to guess"
+            )
+        if matches:
+            return matches[0]
         path = self.artifacts_dir / filename
         uploaded = self.client.upload_document(
             path.name,
@@ -952,7 +963,7 @@ def _reviewed_intent_payload(
     default_summary: str,
 ) -> tuple[list[str], str]:
     calls: list[str] = []
-    if state.document_for(upload_kind) is None:
+    if not documents_with_kind(state, upload_kind):
         calls.append(f"POST /v1/documents/upload ({upload_label})")
     job = state.jobs.get(name) or {}
     action = reviewed_job_action(job)

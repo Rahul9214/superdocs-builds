@@ -262,7 +262,8 @@ class FakeSuperDocsAPI:
         return httpx.Response(200, json={"status": "accepted", "job_id": body.get("job_id")}, request=request)
 
     def _export(self, request: httpx.Request) -> httpx.Response:
-        _json_body(request)
+        body = _json_body(request)
+        self.json_bodies.append(body)
         if self.export_as_json:
             return httpx.Response(
                 200,

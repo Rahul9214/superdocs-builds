@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../api";
+import { PageHeader } from "../components/PageHeader";
 import { Empty, ErrorBanner, FitChip, Loading } from "../components/Status";
 import { useCorpus } from "../corpus";
 import type { ExceptionCard } from "../types";
@@ -38,28 +39,51 @@ export function ExceptionsPage() {
 
   return (
     <section>
-      <h1>Provisional and misfit review</h1>
-      <p>
+      <PageHeader title="Provisional and misfit review">
         Misfits are valid architecture findings, not errors to auto-assign. They require an
         architecture decision.
-      </p>
-      <Bucket title="Provisional" items={rows.provisional} />
-      <Bucket title="Hybrid / bridge" items={rows.hybrid_bridge} />
-      <Bucket title="Misfit" items={rows.misfit} />
+      </PageHeader>
+      <Bucket
+        title="Provisional"
+        note="Evidence is incomplete or in tension. The role stays marked until a reviewer decides."
+        items={rows.provisional}
+      />
+      <Bucket
+        title="Hybrid / bridge"
+        note="Evidence spans more than one craft. The role is left as a bridge, not forced into one family."
+        items={rows.hybrid_bridge}
+      />
+      <Bucket
+        title="Misfit"
+        note="Work sits outside the supported architecture. This is an intentional finding, not an application error."
+        items={rows.misfit}
+      />
     </section>
   );
 }
 
-function Bucket({ title, items }: { title: string; items: ExceptionCard[] }) {
+function Bucket({
+  title,
+  note,
+  items,
+}: {
+  title: string;
+  note: string;
+  items: ExceptionCard[];
+}) {
   return (
-    <section>
-      <h2>{title}</h2>
+    <section className="exception-bucket">
+      <h2>
+        {title}
+        <span className="chip neutral">{items.length}</span>
+      </h2>
+      <p className="exception-note">{note}</p>
       {items.length === 0 ? (
         <Empty>None in this bucket.</Empty>
       ) : (
         <div className="grid-2">
           {items.map((item) => (
-            <article className="card" key={item.role_id}>
+            <article className={`card exception-card ${item.bucket || item.fit_status}`} key={item.role_id}>
               <h3>{item.title}</h3>
               <div className="actions">
                 <FitChip status={item.fit_status} />

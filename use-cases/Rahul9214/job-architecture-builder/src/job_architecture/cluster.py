@@ -186,12 +186,6 @@ def cosine(left: Mapping[str, float], right: Mapping[str, float]) -> float:
     return round(shared / (left_norm * right_norm), 6)
 
 
-def jaccard(left: frozenset[str], right: frozenset[str]) -> float:
-    if not left or not right:
-        return 0.0
-    return round(len(left & right) / len(left | right), 6)
-
-
 @dataclass(frozen=True)
 class RoleVector:
     role_id: str
