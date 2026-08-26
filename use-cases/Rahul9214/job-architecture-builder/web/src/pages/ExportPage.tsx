@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../api";
+import { ArtifactCard } from "../components/ArtifactCard";
+import { Combobox } from "../components/Combobox";
 import { PageHeader } from "../components/PageHeader";
 import { Empty, ErrorBanner, Loading } from "../components/Status";
 import { useCorpus } from "../corpus";
@@ -52,7 +54,7 @@ export function ExportPage() {
         setError("Export did not produce an artifact.");
         return;
       }
-      setMessage(`Local ${kind} artifact written: ${result.filename} (${result.via}). SuperDocs was not called.`);
+      setMessage(`Local ${kind} artifact written: ${result.filename}. SuperDocs was not called.`);
       setDownloadHref(`/api/export/${corpusId}/download/${encodeURIComponent(result.filename)}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Export failed.");
@@ -65,17 +67,23 @@ export function ExportPage() {
   return (
     <section>
       <PageHeader title="Export">
-        Local DOCX export writes a real file. SuperDocs live export is not performed from this screen.
+        Local DOCX files are written by this web app. Live SuperDocs export is a verified CLI workflow, not a
+        browser action.
       </PageHeader>
       {error ? <ErrorBanner message={error} /> : null}
       {!analyzed ? <Empty>Analyze the corpus before exporting framework or profiles.</Empty> : null}
+      <h2 className="export-local">Local artifacts</h2>
+      <p className="helper">Web app local DOCX. These downloads do not call SuperDocs.</p>
       <div className="grid-2">
-        <article className="card artifact-card">
-          <h2>Framework</h2>
+        <ArtifactCard
+          title="Framework"
+          status={
+            <span className={`chip ${analyzed ? "good" : "warn"}`}>
+              {analyzed ? "available" : "analyze first"}
+            </span>
+          }
+        >
           <p>Canonical levels, tracks, families, and competency matrices.</p>
-          <span className={`chip ${analyzed ? "good" : "warn"}`}>
-            {analyzed ? "available" : "analyze first"}
-          </span>
           <div className="actions">
             <button
               type="button"
@@ -86,30 +94,30 @@ export function ExportPage() {
               Export framework
             </button>
           </div>
-        </article>
-        <article className="card artifact-card">
-          <h2>Selected role profile</h2>
+        </ArtifactCard>
+        <ArtifactCard
+          title="Selected role profile"
+          status={
+            <span className={`chip ${analyzed && profileId ? "good" : "warn"}`}>
+              {analyzed && profileId ? "available" : "unavailable"}
+            </span>
+          }
+        >
           {profiles.length === 0 ? (
             <Empty>No profile available to export.</Empty>
           ) : (
             <>
-              <label htmlFor="export-profile">
-                Profile
-                <select
-                  id="export-profile"
-                  value={profileId}
-                  onChange={(event) => setProfileId(event.target.value)}
-                >
-                  {profiles.map((item) => (
-                    <option key={item.profile_id} value={item.profile_id}>
-                      {item.display_title} ({item.level_label})
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <span className={`chip ${analyzed && profileId ? "good" : "warn"}`}>
-                {analyzed && profileId ? "available" : "unavailable"}
-              </span>
+              <Combobox
+                id="export-profile"
+                label="Profile"
+                value={profileId}
+                options={profiles.map((item) => ({
+                  id: item.profile_id,
+                  label: item.display_title,
+                  secondary: item.level_label,
+                }))}
+                onChange={setProfileId}
+              />
               <div className="actions">
                 <button
                   type="button"
@@ -122,7 +130,7 @@ export function ExportPage() {
               </div>
             </>
           )}
-        </article>
+        </ArtifactCard>
       </div>
       {message ? <p>{message}</p> : null}
       {downloadHref ? (
@@ -130,18 +138,23 @@ export function ExportPage() {
           <a href={downloadHref}>Download generated DOCX</a>
         </p>
       ) : null}
-      <article className="card artifact-card" style={{ marginTop: "1rem" }}>
-        <h2>SuperDocs live export</h2>
-        <span className={`chip ${status.configured ? "good" : "warn"}`}>
-          {status.configured ? "configured" : "not configured"}
-        </span>
-        <p>{status.live_export_reason}</p>
+      <h2 className="export-live">Live SuperDocs</h2>
+      <ArtifactCard
+        title="SuperDocs live export"
+        status={
+          <span className={`chip ${status.configured ? "good" : "warn"}`}>
+            {status.configured ? "configured" : "not configured"}
+          </span>
+        }
+      >
+        <p>Live API workflow is available through the verified CLI path. This screen does not start a live export.</p>
+        <p className="helper">{status.live_export_reason}</p>
         <div className="actions">
           <button type="button" className="ghost" disabled>
             Live SuperDocs export unavailable
           </button>
         </div>
-      </article>
+      </ArtifactCard>
     </section>
   );
 }

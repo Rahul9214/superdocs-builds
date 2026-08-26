@@ -43,7 +43,7 @@ def test_spa_fallback_serves_index_when_built(client: TestClient) -> None:
     ):
         response = client.get(path)
         assert response.status_code == 200, path
-        assert "Job architecture reviewer" in response.text
+        assert "Job Architecture and Levelling Framework Builder" in response.text
 
 
 def test_health(client: TestClient) -> None:

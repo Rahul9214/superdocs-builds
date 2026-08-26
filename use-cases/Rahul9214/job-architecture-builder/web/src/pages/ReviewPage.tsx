@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../api";
 import { BeforeAfter } from "../components/BeforeAfter";
-import { Metric } from "../components/Metric";
 import { PageHeader } from "../components/PageHeader";
+import { ReviewState } from "../components/ReviewState";
 import { Empty, ErrorBanner, Loading } from "../components/Status";
 import { useCorpus } from "../corpus";
 import type { ReviewPayload } from "../types";
@@ -68,16 +68,12 @@ export function ReviewPage() {
         separate step after decisions are recorded.
       </PageHeader>
       {error ? <ErrorBanner message={error} /> : null}
-      <div className="state-pair">
-        <div className="metrics">
-          <Metric value={review.review_outcome} label="review outcome" />
-          <Metric value={review.remote_operation} label="remote operation" />
-        </div>
-        <div className="metrics">
-          <Metric value={review.mutation_applied ? "yes" : "no"} label="mutation applied" />
-          <Metric value={review.domain_applied ? "yes" : "no"} label="domain applied" />
-        </div>
-      </div>
+      <ReviewState
+        remoteOperation={review.remote_operation}
+        reviewOutcome={review.review_outcome}
+        mutationApplied={review.mutation_applied}
+        domainApplied={review.domain_applied}
+      />
       <div className="stack">
         {review.plans.map((plan) => (
           <article className="card" key={plan.plan_id}>

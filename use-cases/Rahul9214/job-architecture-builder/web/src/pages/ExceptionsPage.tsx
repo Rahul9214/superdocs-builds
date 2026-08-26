@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../api";
+import { Disclosure } from "../components/Disclosure";
 import { PageHeader } from "../components/PageHeader";
 import { Empty, ErrorBanner, FitChip, Loading } from "../components/Status";
 import { useCorpus } from "../corpus";
@@ -89,14 +90,20 @@ function Bucket({
                 <FitChip status={item.fit_status} />
                 <span className="chip">{item.status.replace(/_/g, " ")}</span>
               </div>
-              <p>{item.why}</p>
-              {item.nearest_cluster_id ? (
-                <p>
-                  Nearest architecture context: cluster {item.nearest_cluster_id}
-                  {item.nearest_similarity != null ? ` (${item.nearest_similarity.toFixed(2)})` : ""}.
-                </p>
+              {item.why ? <p className="reason-line">{item.why}</p> : null}
+              {item.nearest_cluster_id || !item.has_normalized_profile ? (
+                <Disclosure title="Evidence detail">
+                  {item.nearest_cluster_id ? (
+                    <p>
+                      Nearest architecture context: cluster {item.nearest_cluster_id}
+                      {item.nearest_similarity != null ? ` (${item.nearest_similarity.toFixed(2)})` : ""}.
+                    </p>
+                  ) : null}
+                  {item.has_normalized_profile ? null : (
+                    <p>Shown as a review artifact, not a normalized profile.</p>
+                  )}
+                </Disclosure>
               ) : null}
-              {item.has_normalized_profile ? null : <p>Shown as a review artifact, not a normalized profile.</p>}
             </article>
           ))}
         </div>

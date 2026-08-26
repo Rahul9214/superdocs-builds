@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../api";
+import { Disclosure } from "../components/Disclosure";
 import { RoleDrawer } from "../components/RoleDrawer";
 import { MetricsRow } from "../components/Metric";
 import { PageHeader } from "../components/PageHeader";
@@ -61,18 +62,24 @@ export function ArchitecturePage() {
           <div className="grid-2">
             {summary.title_conflicts.map((item) => (
               <article className="card conflict-card" key={item.role_id}>
-                <h3>{item.title}</h3>
-                <FitChip status={item.fit_status} />
-                <p>
-                  <strong>Title signal.</strong> {item.title_conflict.title_signal}.
-                </p>
-                <p>
-                  <strong>Evidence-based outcome.</strong> {item.title_conflict.evidence_result}.
-                </p>
-                <p>
-                  <strong>Why it differs.</strong> {item.title_conflict.summary} The title was not used to
-                  classify the role.
-                </p>
+                <div className="cluster-head">
+                  <h3>{item.title}</h3>
+                  <FitChip status={item.fit_status} />
+                </div>
+                <dl className="def-list">
+                  <div>
+                    <dt>Title signal</dt>
+                    <dd>{item.title_conflict.title_signal}.</dd>
+                  </div>
+                  <div>
+                    <dt>Evidence-based outcome</dt>
+                    <dd>{item.title_conflict.evidence_result}.</dd>
+                  </div>
+                  <div>
+                    <dt>Why it differs</dt>
+                    <dd>{item.title_conflict.summary}</dd>
+                  </div>
+                </dl>
                 <div className="actions">
                   <button type="button" className="ghost" onClick={() => void openRole(item.role_id)}>
                     Open evidence
@@ -84,35 +91,40 @@ export function ArchitecturePage() {
         </div>
       ) : null}
       <h2>Craft neighborhoods</h2>
+      <div className="stack">
       {summary.clusters.map((cluster) => (
-        <article className="card" key={cluster.cluster_id} style={{ marginBottom: "0.75rem" }}>
+        <article className="card" key={cluster.cluster_id}>
           <div className="cluster-head">
             <h3>{cluster.proposed_family ?? "Unlabeled cluster"}</h3>
+            <span className="chip">{cluster.members.length} roles</span>
             <span className="chip">cohesion {cluster.cohesion.toFixed(2)}</span>
             {cluster.separation != null ? (
               <span className="chip">separation {cluster.separation.toFixed(2)}</span>
             ) : null}
           </div>
-          {cluster.nearest_cluster_id ? (
-            <p>
-              Nearest cluster {cluster.nearest_cluster_id}
-              {cluster.nearest_cluster_similarity != null
-                ? ` (${cluster.nearest_cluster_similarity.toFixed(2)})`
-                : ""}
-            </p>
-          ) : null}
-          <ul className="member-list">
-            {cluster.members.map((member) => (
-              <li key={member.role_id}>
-                <button type="button" className="row-btn" onClick={() => void openRole(member.role_id)}>
-                  {member.title}
-                  {member.is_ambiguous ? " (ambiguous)" : ""}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <Disclosure title="Cluster members and nearest neighbor">
+            {cluster.nearest_cluster_id ? (
+              <p>
+                Nearest cluster {cluster.nearest_cluster_id}
+                {cluster.nearest_cluster_similarity != null
+                  ? ` (${cluster.nearest_cluster_similarity.toFixed(2)})`
+                  : ""}
+              </p>
+            ) : null}
+            <ul className="member-list">
+              {cluster.members.map((member) => (
+                <li key={member.role_id}>
+                  <button type="button" className="row-btn" onClick={() => void openRole(member.role_id)}>
+                    {member.title}
+                    {member.is_ambiguous ? " (ambiguous)" : ""}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Disclosure>
         </article>
       ))}
+      </div>
       {role ? <RoleDrawer role={role} onClose={() => setRole(null)} /> : null}
     </section>
   );

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../api";
+import { Disclosure } from "../components/Disclosure";
 import { PageHeader } from "../components/PageHeader";
 import { Empty, ErrorBanner, Loading } from "../components/Status";
 import { useCorpus } from "../corpus";
@@ -41,28 +42,30 @@ export function FrameworkPage() {
       <PageHeader kicker={framework.organization} title="Framework">
         {framework.purpose}
       </PageHeader>
-      <ul>
-        {framework.principles.map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ul>
-      <div className="grid-2">
+      <Disclosure title={`Principles (${framework.principles.length})`}>
+        <ul>
+          {framework.principles.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </Disclosure>
+      <div className="track-grid">
         {framework.tracks.map((track) => (
-          <article className="card" key={track.id}>
+          <div className="track-item" key={track.id}>
             <h2>{track.name}</h2>
             <p>{track.description}</p>
-          </article>
+          </div>
         ))}
       </div>
       <LevelTable title="Individual contributor levels" rows={ic} />
       <LevelTable title="People manager levels" rows={managers} />
       <h2>Job families</h2>
-      <div className="grid-2">
+      <div className="track-grid">
         {framework.families.map((family) => (
-          <article className="card" key={family.id}>
+          <div className="track-item" key={family.id}>
             <h3>{family.name}</h3>
             <p>{family.description}</p>
-          </article>
+          </div>
         ))}
       </div>
       <h2>Provisional and misfit summary</h2>
@@ -98,8 +101,7 @@ export function FrameworkPage() {
       </div>
       <h2>Competency matrices</h2>
       {framework.competency_matrices.map((matrix) => (
-        <article className="card" key={matrix.family_id} style={{ marginBottom: "0.75rem" }}>
-          <h3>{matrix.family_name}</h3>
+        <Disclosure key={matrix.family_id} title={matrix.family_name} defaultOpen={false}>
           {matrix.evidence_limited ? <p>{matrix.limitation}</p> : null}
           <ul>
             {matrix.competencies.map((item) => (
@@ -108,7 +110,7 @@ export function FrameworkPage() {
               </li>
             ))}
           </ul>
-        </article>
+        </Disclosure>
       ))}
     </section>
   );

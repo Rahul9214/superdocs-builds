@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError } from "../api";
 import { BeforeAfter } from "../components/BeforeAfter";
+import { Disclosure } from "../components/Disclosure";
 import { Metric } from "../components/Metric";
 import { PageHeader } from "../components/PageHeader";
+import { Select } from "../components/Select";
 import { Empty, ErrorBanner, Loading } from "../components/Status";
 import { useCorpus } from "../corpus";
 import { dimensionLabel } from "../labels";
@@ -95,44 +97,40 @@ export function ImpactPage() {
   return (
     <section>
       <PageHeader kicker="Canonical change" title="Change impact">
-        Edit one canonical dimension. Impact analysis and update planning run against the live domain
-        engine. Nothing is applied until human review.
+        Edit one occupied level and one canonical dimension. Dependent profiles are listed. Nothing is
+        applied until human review.
       </PageHeader>
       {error ? <ErrorBanner message={error} /> : null}
       <article className="card">
         <div className="grid-2">
-          <label htmlFor="level">
-            Occupied level
-            <select id="level" value={levelId} onChange={(event) => setLevelId(event.target.value)}>
-              {framework.levels.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.label} v{item.version}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label htmlFor="dimension">
-            Canonical dimension
-            <select
-              id="dimension"
-              value={dimension}
-              onChange={(event) => setDimension(event.target.value)}
-            >
-              {dimensions.map((item) => (
-                <option key={item} value={item}>
-                  {dimensionLabel(item)}
-                </option>
-              ))}
-            </select>
-          </label>
+          <Select
+            id="level"
+            label="Occupied level"
+            value={levelId}
+            options={framework.levels.map((item) => ({
+              id: item.id,
+              label: `${item.label} v${item.version}`,
+            }))}
+            onChange={setLevelId}
+          />
+          <Select
+            id="dimension"
+            label="Canonical dimension"
+            value={dimension}
+            options={dimensions.map((item) => ({
+              id: item,
+              label: dimensionLabel(item),
+            }))}
+            onChange={setDimension}
+          />
         </div>
         <div className="impact-hero">
-          <article className="card">
+          <article className="card impact-old">
             <h2>OLD</h2>
             <p>Current {dimensionLabel(dimension)} value.</p>
             <pre className="mono">{oldValue || "—"}</pre>
           </article>
-          <article className="card">
+          <article className="card impact-new">
             <h2>NEW</h2>
             <label htmlFor="proposed">
               Proposed value
@@ -157,15 +155,19 @@ export function ImpactPage() {
       {impact ? (
         <>
           <div className="metrics">
-            <Metric value={impact.affected_profiles_count} label="affected profiles" />
-            <Metric value={impact.unaffected_profiles_count} label="unaffected profiles" />
-            <Metric value={impact.changed_dimensions.join(", ") || "none"} label="canonical dimensions changed" />
+            <Metric value={impact.affected_profiles_count} label="affected profiles" marker="misfit" />
+            <Metric value={impact.unaffected_profiles_count} label="unaffected profiles" marker="fit" />
+            <Metric
+              value={impact.changed_dimensions.join(", ") || "none"}
+              label="canonical dimensions changed"
+              marker="tracks"
+            />
           </div>
           {impact.reason ? <p>{impact.reason}</p> : null}
           {impact.affected_profiles_count === 0 ? (
             <Empty>No affected profiles for this edit.</Empty>
           ) : (
-            <>
+            <Disclosure title="Dependency path" defaultOpen>
               <h2>Why profiles are affected</h2>
               <ul>
                 {impact.affected_sections.map((item) => (
@@ -174,7 +176,7 @@ export function ImpactPage() {
                   </li>
                 ))}
               </ul>
-            </>
+            </Disclosure>
           )}
         </>
       ) : null}

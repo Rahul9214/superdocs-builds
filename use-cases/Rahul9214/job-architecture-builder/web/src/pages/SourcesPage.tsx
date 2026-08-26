@@ -53,8 +53,8 @@ export function SourcesPage() {
                 <tr key={role.role_id}>
                   <td>{role.title}</td>
                   <td>{role.team}</td>
-                  <td>{role.filename}</td>
-                  <td>{role.role_id}</td>
+                  <td className="cell-secondary">{role.filename}</td>
+                  <td className="cell-secondary">{role.role_id}</td>
                 </tr>
               ))}
             </tbody>

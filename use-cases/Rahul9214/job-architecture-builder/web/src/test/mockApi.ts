@@ -380,7 +380,16 @@ export function installApiMock(options: MockOptions = {}) {
     if (profileOne) return json(profileDetail);
     if (url.startsWith("/api/profiles/")) {
       return json({
-        profiles: [profileSummary],
+        profiles: [
+          profileSummary,
+          {
+            ...profileSummary,
+            profile_id: "profile-ns-swe-backend",
+            role_id: "ns-swe-backend",
+            display_title: "Software Engineer, Backend",
+            level_label: "IC3",
+          },
+        ],
         review_artifacts: [
           {
             kind: "review_artifact",

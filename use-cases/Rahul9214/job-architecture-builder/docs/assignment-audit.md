@@ -75,6 +75,57 @@ Do not treat a row as PASS without the cited evidence. Live SuperDocs claims cit
 
 HRIS, ATS, compensation benchmarking, salary bands, employee-record management, auth/RBAC, generic document editing, generic chatbot, real private HR data, automatic approval, automatic publication — none implemented; none required.
 
+## Task-2 requirement map (A–AO)
+
+Recorded against the working tree of this release-candidate pass. Live SuperDocs claims cite `docs/live-verification.md` only.
+
+| ID | Requirement | Implementation | Test / evidence | UI surface | Live SuperDocs | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| A | Synthetic JDs | Markdown JDs under `fixtures/` | `tests/test_fixtures.py` | `/sources` | Demo subset uploaded | PASS |
+| B | Job families | Catalog + post-cluster labels | architecture metrics; family tests | `/architecture`, `/framework` | Framework HTML contains families | PASS |
+| C | Career tracks | IC vs people-manager from evidence | `tests/test_adversarial.py` | Architecture chips | Framework tracks in export | PASS |
+| D | Levelling framework | Canonical IC1–IC5, M1–M3 | `tests/test_management_levels.py` | `/framework` | Framework export attempt 3 | PASS |
+| E | Competency matrices | Per-family matrices; evidence-limited flag | framework tests | `/framework` Competency matrices | Included in HTML export | PASS |
+| F | Role profiles | Employee-readable profiles; misfits as artifacts | `tests/test_web_acceptance.py` | `/profiles` | Live profile DOCX | PASS |
+| G | Evidence over title | Title excluded from clustering/family scoring | title-swap metamorphic test | Architecture lede + drawer | N/A (domain) | PASS |
+| H | Senior title / narrow scope | Typed `title_conflict` after evidence assignment | `tests/test_title_conflict.py` Workplace Tools | Title vs evidence | N/A | PASS |
+| I | Modest title / broad scope | Same typed conflict path | Payments IC4 case | Title vs evidence | Surgical target | PASS |
+| J | Manager title / no management | Management-title mismatch vs genuine EM | EM DX vs EM Platform tests | Title vs evidence | N/A | PASS |
+| K | Hybrids | Bridge, not forced family | hybrid unclustered tests | `/exceptions` Hybrid | N/A | PASS |
+| L | Sparse roles | Remain provisional | Program Coordinator tests | `/exceptions` Provisional | Demo subset | PASS |
+| M | Misfits / out-of-architecture | Stay misfit; no auto-assign | Developer Advocate / MSL tests | `/exceptions` Misfit | N/A | PASS |
+| N | Confidence / fit semantics | Coarse buckets; fit chips | assess + UI chips | Architecture, Exceptions | N/A | PASS |
+| O | Clustering | TF-IDF + occupational cosine, compatibility gate | `tests/test_clustering.py` | Craft neighborhoods | N/A | PASS |
+| P | Clustering not family-id grouping | Labels applied after grouping | architecture tests forbid fixture-id grouping | `/architecture` | N/A | PASS |
+| Q | Second corpus | Same engine on Meridian fixtures | `test_corpus_b_smoke_path` | Organization select | N/A | PASS |
+| R | No corpus/role hardcoding | Production `src/` has no Northstar/Meridian/`ns-`/`mh-` branches | fixture-id scan | Frontend consumes API | N/A | PASS |
+| S | M1–M3 completeness | Catalog keeps unoccupied M2/M3 | framework tables | `/framework` | Attempt 3 HTML | PASS |
+| T | Dependencies | Explicit `DependencyEdge` level → `level_expectations` | graph tests | `/impact` dependency path | Surgical 3 | PASS |
+| U | Impact analysis | Occupied level + dimension OLD/NEW | `tests/test_web_acceptance.py` | `/impact` | N/A (local planner) | PASS |
+| V | Surgical propagation | Patch only changed canonical dimensions | planner tests; live attempt 3 | `/impact` plans | Attempt 3 version + Scope | PASS |
+| W | Unaffected preservation | SHA-256 section hashes | `tests/test_framework_propagation.py` | Impact preservation copy | `verify-export` PASS | PASS |
+| X | Human review | No auto-approve; Approve/Reject | review API tests | `/review` | `ask_every_time` | PASS |
+| Y | Mixed approve/reject | Per-plan decisions | review tests | `/review` | Surgical 1–2 reject, 3 approve | PASS |
+| Z | Idempotency | Safe GET retry; no blind POST retry; `operation_key` | live resume tests | N/A | Search 0 extra POSTs | PASS |
+| AA | Multi-document | `open_mode=new_focused`; roster | client tests | Evidence dialog status | Four JD ids coexisted | PASS |
+| AB | Search | Async chat `cross_session_search=true` | live-verification Search row | N/A (CLI) | Resume verified/terminal/has_result | PASS |
+| AC | Templates | Framework and role-profile template upload | live-verification templates | N/A (CLI) | Two templates uploaded | PASS |
+| AD | Review | SuperDocs review + local web review | `/review`; live decision log | `/review` | Framework/profile/repair/surgical | PASS |
+| AE | Export | Local web DOCX + live CLI export | web export API tests | `/export` | Profile DOCX; framework attempt 3 | PASS |
+| AF | Profile DOCX live proof | Live `export --kind profile` | live-verification | N/A (CLI) | PASS after repair + surgical 3 | PASS |
+| AG | Framework DOCX live proof | HTML + `session_id` export | live-verification attempts 1–3 | N/A (CLI) | Attempt 3 PASS; 1–2 retained FAIL | PASS |
+| AH | Live search proof | Resume same job id | live-verification Search | N/A (CLI) | PASS | PASS |
+| AI | Rejected attempts preserved | History keeps rejected jobs | `tests/test_live_review_resume.py` | Review state | Attempts 1–2 retained | PASS |
+| AJ | No auto approval | `--confirm`; web Approve/Reject | review tests | `/review` | `ask_every_time` | PASS |
+| AK | Offline usability | pytest MockTransport; UI without key | pytest; vitest | Full reviewer path | N/A | PASS |
+| AL | Reviewer UI | FastAPI + React workspace | vitest + manual acceptance | All primary routes | Status only; no live export button that works | PASS |
+| AM | Responsive / accessibility | 44px controls; combobox; drawers; collapsed tooltips | vitest; Lighthouse a11y | Shell + pages | N/A | PASS |
+| AN | Clean clone | README install without `.runtime` or key | `docs/clean-clone-verification.md` | SPA after `npm run build` | N/A | PASS at `274866e`; re-run after this uncommitted pass is committed |
+| AO | Secret hygiene | gitignore; redaction; runtime refusal | `docs/security-check.md`; API tests | Export never shows the key | Key never copied into git | PASS |
+
+AN is PASS for the last cloned commit. This uncommitted UI pass is not in that clone until a later commit.
+
 ## Hosted deployment
+
 
 NOT APPLICABLE. No hosted SuperDocs or public deployment is claimed. Reviewer UI is local FastAPI.

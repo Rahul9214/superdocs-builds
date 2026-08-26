@@ -18,6 +18,7 @@ async function ready() {
 
 describe("reviewer application", () => {
   beforeEach(() => {
+    window.localStorage.clear();
     installApiMock();
   });
 
@@ -40,13 +41,68 @@ describe("reviewer application", () => {
     }
   });
 
-  it("switches corpus to Meridian HealthTech", async () => {
+  it("collapses the desktop sidebar without dropping accessible names", async () => {
+    const user = userEvent.setup();
+    renderApp("/");
+    await ready();
+    const toggle = screen.getByRole("button", { name: /collapse navigation/i });
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle).toHaveAccessibleName(/expand navigation/i);
+    const nav = screen.getByRole("navigation", { name: "Primary" });
+    const overview = within(nav).getByRole("link", { name: "Overview" });
+    expect(overview).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "Change Impact" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Integration status" })).not.toBeInTheDocument();
+    await user.unhover(toggle);
+    overview.focus();
+    expect(await screen.findByRole("tooltip", { name: "Overview" })).toBeInTheDocument();
+  });
+
+  it("opens the organization dropdown and switches corpus to Meridian HealthTech", async () => {
     const user = userEvent.setup();
     renderApp("/sources");
-    await ready();
-    await user.selectOptions(screen.getByRole("combobox", { name: /organization/i }), "corpus-b");
-    expect(screen.getByRole("combobox", { name: /organization/i })).toHaveValue("corpus-b");
+    const combo = await ready();
+    await user.click(combo);
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("option", { name: "Meridian HealthTech" }));
+    expect(combo).toHaveTextContent("Meridian HealthTech");
     expect(await screen.findByText("Clinical Operations Analyst")).toBeInTheDocument();
+  });
+
+  it("selects an organization with ArrowDown and Enter, and Escape closes the menu", async () => {
+    const user = userEvent.setup();
+    renderApp("/");
+    const combo = await ready();
+    await user.click(combo);
+    await user.keyboard("{ArrowDown}{Enter}");
+    expect(combo).toHaveTextContent("Meridian HealthTech");
+    await user.click(combo);
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(combo).toHaveFocus();
+  });
+
+  it("changes occupied level and canonical dimension from custom dropdowns", async () => {
+    const user = userEvent.setup();
+    renderApp("/impact");
+    expect(await screen.findByRole("heading", { name: "Change impact" })).toBeInTheDocument();
+    const level = screen.getByRole("combobox", { name: /occupied level/i });
+    expect(level).toHaveTextContent("IC4 v1");
+    await user.click(level);
+    await user.click(screen.getByRole("option", { name: "IC1 v1" }));
+    expect(level).toHaveTextContent("IC1 v1");
+    expect(screen.getByText("Local tickets")).toBeInTheDocument();
+
+    const dimension = screen.getByRole("combobox", { name: /canonical dimension/i });
+    expect(dimension).toHaveTextContent("Scope");
+    await user.click(dimension);
+    expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("option", { name: "Autonomy" }));
+    expect(dimension).toHaveTextContent("Autonomy");
   });
 
   it("shows architecture metrics, title-conflict evidence, and the role drawer", async () => {
@@ -88,7 +144,9 @@ describe("reviewer application", () => {
     const user = userEvent.setup();
     renderApp("/profiles");
     expect(await screen.findByText("Software Engineer II, Payments")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Open profile" }));
+    const payments = screen.getByText("Software Engineer II, Payments").closest("article");
+    expect(payments).toBeTruthy();
+    await user.click(within(payments as HTMLElement).getByRole("button", { name: "Open profile" }));
     expect(await screen.findByText("Owns payment sequencing.")).toBeInTheDocument();
     expect(screen.getByText(/Scope: Cross-team domain/)).toBeInTheDocument();
   });
@@ -119,10 +177,10 @@ describe("reviewer application", () => {
     renderApp("/review");
     expect(await screen.findByText("Before")).toBeInTheDocument();
     expect(screen.getByText("After")).toBeInTheDocument();
-    expect(screen.getByText("remote operation")).toBeInTheDocument();
-    expect(screen.getByText("review outcome")).toBeInTheDocument();
-    expect(screen.getByText("mutation applied")).toBeInTheDocument();
-    expect(screen.getByText("domain applied")).toBeInTheDocument();
+    expect(screen.getByText("Remote operation")).toBeInTheDocument();
+    expect(screen.getByText("Review outcome")).toBeInTheDocument();
+    expect(screen.getByText("Document mutation")).toBeInTheDocument();
+    expect(screen.getByText("Domain update")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Approve" }));
     expect(await screen.findByText(/Decision: approved/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Reject" }));
@@ -130,14 +188,28 @@ describe("reviewer application", () => {
   });
 
   it("shows SuperDocs as not configured on Export", async () => {
+    const user = userEvent.setup();
     renderApp("/export");
     expect(await screen.findByText("not configured")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /live superdocs export unavailable/i })).toBeDisabled();
     expect(screen.getByText(/SUPERDOCS_API_KEY is not configured/)).toBeInTheDocument();
+    const combo = await screen.findByRole("combobox", { name: /^profile$/i });
+    await user.click(combo);
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    expect(screen.getByRole("searchbox", { name: /filter profile/i })).toBeInTheDocument();
+    await user.click(screen.getByRole("option", { name: /Software Engineer II, Payments/i }));
+    expect(combo).toHaveTextContent(/Software Engineer II, Payments/);
+    await user.click(combo);
+    await user.type(screen.getByRole("searchbox", { name: /filter profile/i }), "Pay");
+    expect(screen.getByRole("option", { name: /Software Engineer II, Payments/i })).toBeInTheDocument();
   });
 });
 
 describe("empty and error states", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   it("shows an empty review state", async () => {
     installApiMock({ reviewEmpty: true });
     renderApp("/review");
