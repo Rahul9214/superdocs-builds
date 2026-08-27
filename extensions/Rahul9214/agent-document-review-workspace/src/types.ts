@@ -13,6 +13,7 @@ export interface ChangeItem {
   actual: string;
   verification: VerificationStatus;
   status: ReviewStatus;
+  artifactState: string;
 }
 
 export interface DocumentRecord {

@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { Document, Packer, Paragraph, HeadingLevel } from 'docx';
 import { initialState } from './fixtures';
-import { evidenceRecord, updateChangeStatus } from './model';
+import { canRevert, evidenceRecord, revertChange, updateChangeStatus } from './model';
 import { WorkspaceState } from './types';
 
 let state: WorkspaceState = structuredClone(initialState);
@@ -34,6 +34,11 @@ async function openWorkspace(context: vscode.ExtensionContext) {
       render();
       return;
     }
+    if (message.type === 'revert') {
+      state = revertChange(state, message.id);
+      render();
+      return;
+    }
     if (message.type === 'reset') {
       state = structuredClone(initialState);
       render();
@@ -52,7 +57,7 @@ async function openWorkspace(context: vscode.ExtensionContext) {
       const doc = new Document({ sections: [{ children: [
         new Paragraph({ text: 'Reviewed Vendor Agreement — Demo Export', heading: HeadingLevel.TITLE }),
         new Paragraph('This synthetic artifact demonstrates the review/export state used by the workspace.'),
-        ...approved.map(c => new Paragraph(`${c.section}: ${c.after}`))
+        ...approved.map(c => new Paragraph(`${c.section}: ${c.artifactState}`))
       ] }] });
       const buffer = await Packer.toBuffer(doc);
       const uri = await vscode.window.showSaveDialog({ defaultUri: vscode.Uri.file(path.join(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? process.cwd(), 'reviewed-vendor-agreement.docx')) });
@@ -97,12 +102,12 @@ function getHtml(state: WorkspaceState) {
       <aside class="rail"><div class="eyebrow">Agent run</div><div class="run-card"><div class="run-title"><strong>${esc(selected.agent)}</strong><span class="status-dot"></span></div><div class="timeline"><div class="step">✓ <span><strong>Opened document</strong><br>${esc(selected.documentId)}.docx</span></div><div class="step">✓ <span><strong>Located target</strong><br>${esc(selected.section)}</span></div><div class="step">◉ <span><strong>Proposed changes</strong><br>Waiting on human review</span></div><div class="step">○ <span><strong>Export</strong><br>Blocked until review completes</span></div></div></div><div class="eyebrow">Changes</div><div class="change-list">${changeRows}</div></aside>
       <main class="main"><div class="main-head"><div><div class="eyebrow">Document change</div><div class="doc-title">${esc(state.documents.find(d => d.id===selected.documentId)?.name ?? selected.documentId)}</div><div class="doc-meta">${esc(selected.section)} · ${esc(selected.agent)} · Turn ${selected.turn}</div></div><div class="counter">${state.changes.indexOf(selected)+1} / ${state.changes.length}</div></div>
       <div class="diff-grid"><section class="pane before"><div class="pane-label">Before</div><div class="doc-block"><span class="deleted">${esc(selected.before)}</span></div></section><section class="pane after"><div class="pane-label">After</div><div class="doc-block"><span class="added">${esc(selected.after)}</span></div></section></div>
-      <div class="context"><h3>Review scope</h3><p>Only this proposed section is in scope. Approving or rejecting it does not change the other review items.</p></div></main>
+      <div class="context"><h3>Review scope</h3><p>Only this proposed section is in scope. Approving, rejecting, or reverting it does not change the other review items.</p></div></main>
       <aside class="inspector"><div class="eyebrow">Verification</div><div class="verify-card"><div class="verify-head"><strong>Claim vs actual</strong><span class="verify-badge ${selected.verification}">${selected.verification === 'verified' ? '✓ Verified' : '⚠ Mismatch'}</span></div><small>AGENT CLAIM</small><div class="quote">${esc(selected.claim)}</div><small>ARTIFACT CHECK</small><div class="quote">${esc(selected.actual)}</div><div class="meta-grid"><div class="meta"><small>Agent</small>${esc(selected.agent)}</div><div class="meta"><small>Status</small>${esc(selected.status)}</div><div class="meta"><small>Document</small>${esc(selected.documentId)}</div><div class="meta"><small>Turn</small>${selected.turn}</div></div></div></aside>
     </section>
-    <footer class="bottom"><div class="decision-summary">Review is explicit. Nothing is exported until the reviewer decides.</div><div class="actions"><button class="btn ghost" onclick="send('reset')">Reset demo</button><button class="btn" onclick="send('exportEvidence')">Export evidence</button><button class="btn danger" onclick="decision('rejected')">Reject</button><button class="btn primary" onclick="decision('approved')">Approve & continue</button><button class="btn" onclick="send('exportDocx')">Export DOCX</button></div></footer>
+    <footer class="bottom"><div class="decision-summary">Review is explicit. Revert is available only after a change is approved or applied.</div><div class="actions"><button class="btn ghost" onclick="send('reset')">Reset demo</button><button class="btn" onclick="send('exportEvidence')">Export evidence</button>${selected.status === 'pending' ? `<button class="btn danger" onclick="decision('rejected')">Reject</button><button class="btn primary" onclick="decision('approved')">Approve & continue</button>` : ''}${canRevert(selected) ? `<button class="btn" onclick="revertSelected()">Revert</button>` : ''}<button class="btn" onclick="send('exportDocx')">Export DOCX</button></div></footer>
   </div>
-  <script>const vscode=acquireVsCodeApi();function send(type){vscode.postMessage({type})}function selectChange(id){vscode.postMessage({type:'select',id})}function decision(status){vscode.postMessage({type:'decision',id:'${selected.id}',status})}</script>
+  <script>const vscode=acquireVsCodeApi();function send(type){vscode.postMessage({type})}function selectChange(id){vscode.postMessage({type:'select',id})}function decision(status){vscode.postMessage({type:'decision',id:'${selected.id}',status})}function revertSelected(){vscode.postMessage({type:'revert',id:'${selected.id}'})}</script>
   </body></html>`;
 }
 

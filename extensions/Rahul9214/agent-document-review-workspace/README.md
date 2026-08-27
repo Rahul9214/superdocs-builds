@@ -7,9 +7,10 @@ A compact VS Code review panel for agent-driven document changes. It is based di
 1. **Agent activity stream** grouped by turn and document.
 2. **Before / after document diff** for each proposed change.
 3. **Approve / reject decisions** that apply independently per change.
-4. **Claim-vs-actual verification** that catches an agent claiming an edit that is not present in the artifact.
-5. **Multiple agent clients** represented through one neutral review model (Cursor Agent + Claude Code fixtures).
-6. **Evidence + DOCX export** after review, with reviewer state preserved in the evidence record.
+4. **Revert** of an approved or applied change, restoring only that section’s original content.
+5. **Claim-vs-actual verification** that catches an agent claiming an edit that is not present in the artifact.
+6. **Multiple agent clients** represented through one neutral review model (Cursor Agent + Claude Code fixtures).
+7. **Evidence + DOCX export** after review, with reviewer decision, actual artifact state, and reverted state preserved.
 
 This is intentionally a **human control surface**, not another chat UI and not a SuperDocs clone.
 
@@ -30,6 +31,7 @@ Then open the folder in VS Code and press **F5** to launch an Extension Developm
 Use the synthetic `vendor-agreement.docx` review queue:
 
 - approve the requested renewal-notice change;
+- revert that applied change and confirm sibling review states stay put;
 - approve the concise support paragraph;
 - reject the unrelated payment-term mutation;
 - inspect a second agent turn where the agent claims an edit happened but the artifact contains no corresponding change;

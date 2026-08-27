@@ -1,9 +1,32 @@
-import { WorkspaceState, ReviewStatus } from './types';
+import { WorkspaceState, ReviewStatus, ChangeItem } from './types';
+
+function withStatus(change: ChangeItem, status: ReviewStatus): ChangeItem {
+  if (status === 'approved' || status === 'applied') {
+    return { ...change, status, artifactState: change.after };
+  }
+  if (status === 'reverted') {
+    return { ...change, status, artifactState: change.before };
+  }
+  return { ...change, status };
+}
+
+export function canRevert(change: Pick<ChangeItem, 'status'>): boolean {
+  return change.status === 'approved' || change.status === 'applied';
+}
 
 export function updateChangeStatus(state: WorkspaceState, id: string, status: ReviewStatus): WorkspaceState {
-  const changes = state.changes.map(change => change.id === id ? { ...change, status } : change);
+  const changes = state.changes.map(change => change.id === id ? withStatus(change, status) : change);
   const next = changes.find(c => c.status === 'pending');
   return { ...state, changes, selectedChangeId: next?.id ?? id };
+}
+
+export function revertChange(state: WorkspaceState, id: string): WorkspaceState {
+  const target = state.changes.find(change => change.id === id);
+  if (!target || !canRevert(target)) {
+    return state;
+  }
+  const changes = state.changes.map(change => change.id === id ? withStatus(change, 'reverted') : change);
+  return { ...state, changes, selectedChangeId: id };
 }
 
 export function summary(state: WorkspaceState) {
@@ -20,8 +43,19 @@ export function evidenceRecord(state: WorkspaceState) {
     generatedAt: new Date().toISOString(),
     product: 'SuperDocs Agent Review Workspace',
     documents: state.documents,
-    decisions: state.changes.map(({ id, documentId, agent, turn, section, claim, actual, verification, status }) => ({
-      id, documentId, agent, turn, section, claim, actual, verification, status
+    decisions: state.changes.map(({ id, documentId, agent, turn, section, claim, actual, verification, status, artifactState, before }) => ({
+      id,
+      documentId,
+      agent,
+      turn,
+      section,
+      claim,
+      actual,
+      verification,
+      reviewerDecision: status,
+      status,
+      artifactState,
+      revertedState: status === 'reverted' ? before : null
     }))
   };
 }
