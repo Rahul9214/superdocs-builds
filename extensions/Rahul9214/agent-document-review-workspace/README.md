@@ -59,3 +59,18 @@ Do not include API keys, tokens, or private documents in screenshots.
 ## Integration boundary
 
 The demo uses deterministic synthetic agent events so every reviewer sees the same failure/review states. The review model is agent-neutral and shaped to accept real agent/SuperDocs events later. No claim is made here that the synthetic fixtures are live SuperDocs MCP calls.
+
+
+## Evidence
+
+The deterministic demo scenarios show the core review invariants:
+
+- `01-initial-review-state` — four agent-proposed changes awaiting explicit human review.
+- `02-claimed-vs-actual-mismatch` — verification catches an unrelated payment-term change that the agent did not disclose.
+- `03-independent-revert` — one approved change is reverted without disturbing another approved change.
+- `04-completed-human-review` — every proposed change receives a human decision; detected mismatches are rejected.
+- `05-build-and-tests` — clean install, TypeScript build, and deterministic test suite pass.
+
+Machine-readable review artifacts are included under `evidence/exports/`.
+
+The fixture scenarios are synthetic and deterministic for repeatable review testing. They are not presented as live SuperDocs MCP traffic.

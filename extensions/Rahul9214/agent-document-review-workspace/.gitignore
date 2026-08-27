@@ -4,3 +4,4 @@ dist/
 .DS_Store
 reviewed-*.docx
 superdocs-review-evidence.json
+!evidence/exports/superdocs-review-evidence.json
