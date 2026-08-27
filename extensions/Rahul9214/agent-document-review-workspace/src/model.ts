@@ -1,5 +1,9 @@
 import { WorkspaceState, ReviewStatus, ChangeItem } from './types';
 
+function isReviewDecision(status: ReviewStatus): status is 'approved' | 'applied' | 'rejected' {
+  return status === 'approved' || status === 'applied' || status === 'rejected';
+}
+
 function withStatus(change: ChangeItem, status: ReviewStatus): ChangeItem {
   if (status === 'approved' || status === 'applied') {
     return { ...change, status, artifactState: change.after };
@@ -15,6 +19,10 @@ export function canRevert(change: Pick<ChangeItem, 'status'>): boolean {
 }
 
 export function updateChangeStatus(state: WorkspaceState, id: string, status: ReviewStatus): WorkspaceState {
+  const target = state.changes.find(change => change.id === id);
+  if (!target || target.status !== 'pending' || !isReviewDecision(status)) {
+    return state;
+  }
   const changes = state.changes.map(change => change.id === id ? withStatus(change, status) : change);
   const next = changes.find(c => c.status === 'pending');
   return { ...state, changes, selectedChangeId: next?.id ?? id };

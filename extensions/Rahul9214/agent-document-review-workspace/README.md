@@ -17,14 +17,22 @@ This is intentionally a **human control surface**, not another chat UI and not a
 ## Run locally
 
 ```bash
-npm install
+npm ci
 npm run build
 npm test
 ```
 
-Then open the folder in VS Code and press **F5** to launch an Extension Development Host. Run:
+Open **this project folder** in VS Code (or Cursor) and press **F5** to launch an Extension Development Host. Then run:
 
 **SuperDocs: Open Agent Review Workspace**
+
+The browser demo is the fastest review path:
+
+```powershell
+.\run-demo.ps1
+```
+
+Open `http://localhost:8031`.
 
 ## Demo scenario
 
@@ -40,21 +48,15 @@ Use the synthetic `vendor-agreement.docx` review queue:
 
 ## Evidence to capture
 
-Take these screenshots during the demo:
+Use the files listed under **Evidence** below. Do not include API keys, tokens, or private documents.
 
-1. **Overview state** — first change selected, showing the three-pane workspace.
-2. **Mismatch state** — select `Payment terms` or the Claude Code change so the red `Mismatch` inspector is visible.
-3. **Decision state** — after approving two changes and rejecting one, show the queue statuses together.
-4. **Export proof** — save `superdocs-review-evidence.json` and `reviewed-vendor-agreement.docx`; capture the VS Code success toast or file explorer.
-
-Also keep the terminal output for:
+Keep the terminal output for:
 
 ```bash
+npm ci
 npm run build
 npm test
 ```
-
-Do not include API keys, tokens, or private documents in screenshots.
 
 ## Integration boundary
 

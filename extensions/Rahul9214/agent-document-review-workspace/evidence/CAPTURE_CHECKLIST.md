@@ -2,29 +2,33 @@
 
 ## Required screenshots
 
-- [ ] `01-workspace-overview.png` — Agent timeline + before/after diff + verification inspector.
-- [ ] `02-claim-mismatch.png` — Red mismatch state visible with agent claim and artifact check.
-- [ ] `03-review-decisions.png` — Two approved changes and one rejected change visible in the queue.
-- [ ] `04-export-proof.png` — Evidence JSON / DOCX export success visible.
+These files are stored under `evidence/screenshots/`:
+
+- [x] `01-initial-review-state.jpg` — three-pane workspace with the first change selected.
+- [x] `02-claimed-vs-actual-mismatch.png` — mismatch inspector with agent claim and artifact check.
+- [x] `03-independent-revert.png` — one change reverted without disturbing another approved change.
+- [x] `04-completed-human-review.png` — queue after every proposed change received a human decision.
+- [x] `05-build-and-tests.jpg` — clean install, build, and tests.
+
+Machine-readable exports live under `evidence/exports/`.
 
 ## Required command evidence
 
 ```powershell
-npm install
+npm ci
 npm run build
 npm test
 ```
 
-Save the clean terminal output as `05-build-and-tests.txt` or a screenshot.
-
 ## Optional 30–45 second extra-credit clip
 
 1. Open workspace.
-2. Select correct change → Approve.
-3. Select unrelated payment change → show mismatch → Reject.
-4. Select false claim → show no artifact change.
-5. Export evidence.
+2. Select the renewal-notice change → Approve.
+3. Revert that applied change and confirm sibling states stay put.
+4. Select unrelated payment change → show mismatch → Reject.
+5. Select false claim → show no artifact change.
+6. Export evidence.
 
 ## Form-ready description (only after the evidence above exists)
 
-> Extra credit — SuperDocs Agent Review Workspace. I built the Open Task List's coding-agent document review surface as a VS Code panel: before/after changes grouped by agent turn, explicit approve/reject decisions, independent review state, a claimed-vs-actual verifier that catches an agent reporting an edit that did not happen, support for more than one agent client through one neutral model, and evidence/DOCX export. I used deterministic synthetic documents for repeatable review states and kept the integration boundary explicit rather than claiming fixture activity was live MCP traffic.
+> Extra credit — SuperDocs Agent Review Workspace. I built the Open Task List's coding-agent document review surface as a VS Code panel: before/after changes grouped by agent turn, explicit approve/reject/revert decisions, independent review state, a claimed-vs-actual verifier that catches an agent reporting an edit that did not happen, support for more than one agent client through one neutral model, and evidence/DOCX export. I used deterministic synthetic documents for repeatable review states and kept the integration boundary explicit rather than claiming fixture activity was live MCP traffic.

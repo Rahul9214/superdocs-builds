@@ -69,6 +69,44 @@ test('revert is a no-op unless the change is approved or applied', () => {
   assert.equal(model.canRevert({ status: 'applied' }), true);
 });
 
+test('reject cannot modify artifact content', () => {
+  const original = structuredClone(fixtures.initialState);
+  const artifactBefore = byId(original, 'chg-3').artifactState;
+  const next = model.updateChangeStatus(original, 'chg-3', 'rejected');
+  assert.equal(byId(next, 'chg-3').status, 'rejected');
+  assert.equal(byId(next, 'chg-3').artifactState, artifactBefore);
+  assert.equal(byId(next, 'chg-3').artifactState, byId(next, 'chg-3').before);
+  assert.equal(byId(next, 'chg-1').artifactState, byId(original, 'chg-1').artifactState);
+});
+
+test('invalid status transitions are no-ops', () => {
+  const original = structuredClone(fixtures.initialState);
+  assert.equal(model.updateChangeStatus(original, 'chg-1', 'reverted'), original);
+  assert.equal(model.updateChangeStatus(original, 'missing', 'approved'), original);
+
+  const rejected = model.updateChangeStatus(structuredClone(fixtures.initialState), 'chg-3', 'rejected');
+  assert.equal(model.updateChangeStatus(rejected, 'chg-3', 'approved'), rejected);
+  assert.equal(model.updateChangeStatus(rejected, 'chg-3', 'applied'), rejected);
+
+  const approved = model.updateChangeStatus(structuredClone(fixtures.initialState), 'chg-1', 'approved');
+  assert.equal(model.updateChangeStatus(approved, 'chg-1', 'rejected'), approved);
+  const reverted = model.revertChange(approved, 'chg-1');
+  assert.equal(model.updateChangeStatus(reverted, 'chg-1', 'approved'), reverted);
+});
+
+test('review operations do not mutate fixture initial state so reset stays deterministic', () => {
+  const snapshot = structuredClone(fixtures.initialState);
+  let state = model.updateChangeStatus(structuredClone(fixtures.initialState), 'chg-1', 'approved');
+  state = model.updateChangeStatus(state, 'chg-3', 'rejected');
+  state = model.revertChange(state, 'chg-1');
+  assert.notEqual(byId(state, 'chg-1').status, 'pending');
+  assert.deepEqual(fixtures.initialState, snapshot);
+  const reset = structuredClone(fixtures.initialState);
+  assert.deepEqual(reset, snapshot);
+  assert.equal(byId(reset, 'chg-1').status, 'pending');
+  assert.equal(byId(reset, 'chg-1').artifactState, byId(reset, 'chg-1').before);
+});
+
 test('claim mismatches are explicit and countable', () => {
   const counts = model.summary(fixtures.initialState);
   assert.equal(counts.mismatch, 2);
